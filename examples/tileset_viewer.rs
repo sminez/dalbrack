@@ -5,8 +5,8 @@ pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
     let mut ts = TileSet::urizen()?;
 
-    let mut col: u32 = 0;
-    let mut row: u32 = 0;
+    let mut col: u16 = 0;
+    let mut row: u16 = 0;
 
     loop {
         if let Some(evt) = ui.next_event() {
@@ -42,12 +42,28 @@ pub fn main() -> anyhow::Result<()> {
             }
         }
 
-        ui.blit_tile(
-            ts.map_tile(row, col),
-            Color::RGB(255, 0, 0),
-            &mut ts,
-            Rect::new(50, 50, 100, 100),
-        )?;
+        ui.clear();
+
+        // show the tile itself
+        let pos = ts.pos(row, col);
+        ui.blit_tile(pos, Color::WHITE, &mut ts, Rect::new(50, 50, 100, 100))?;
+
+        // show the coords
+        let mut r = Rect::new(50, 200, 50, 50);
+        for ch in format!("({row},{col})").chars() {
+            ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::RED, &mut ts, r)?;
+            r.x += 40;
+        }
+
+        // show the ident (if there is one)
+        if let Some(ident) = ts.tile_name(pos) {
+            let mut r = Rect::new(50, 250, 50, 50);
+            for ch in ident.to_string().chars() {
+                ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::RED, &mut ts, r)?;
+                r.x += 40;
+            }
+        }
+
         ui.render()?;
     }
 }

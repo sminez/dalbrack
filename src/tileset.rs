@@ -1,3 +1,4 @@
+use crate::data_files::parse_tile_map;
 use anyhow::anyhow;
 use sdl2::{
     image::LoadSurface,
@@ -5,7 +6,7 @@ use sdl2::{
     rect::Rect,
     surface::Surface,
 };
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pos {
@@ -21,29 +22,24 @@ impl Pos {
 
 pub struct TileSet<'a> {
     s: Surface<'a>,
-    dx: u32,
-    dy: u32,
+    dx: u16,
+    dy: u16,
     start: Pos,
-    gap: u32,
+    gap: u16,
+    tiles: HashMap<String, Pos>,
 }
 
 impl<'a> TileSet<'a> {
     pub fn urizen() -> anyhow::Result<Self> {
-        Self::new(
-            "assets/urizen/urizen_onebit_tileset__v1d1.png",
-            12,
-            12,
-            Pos::new(1, 1),
-            1,
-        )
+        parse_tile_map("assets/urizen/tile.map")
     }
 
-    pub fn new(
+    pub(crate) fn new(
         path: impl AsRef<Path>,
-        dx: u32,
-        dy: u32,
+        dx: u16,
+        dy: u16,
         start: Pos,
-        gap: u32,
+        gap: u16,
     ) -> anyhow::Result<Self> {
         let s = Surface::from_file(path)
             .map_err(|e| anyhow!("unable to load tileset: {e}"))?
@@ -56,17 +52,36 @@ impl<'a> TileSet<'a> {
             dy,
             start,
             gap,
+            tiles: HashMap::new(),
         })
     }
 
     /// Map a row/column offset within a tilesheet into the correct pixel coordinates for blitting
     /// the tile.
-    pub fn map_tile(&self, row: u32, col: u32) -> Pos {
+    pub fn map_tile(&mut self, ident: impl Into<String>, row: u16, col: u16) -> Pos {
+        let p = self.pos(row, col);
+        self.tiles.insert(ident.into(), p);
+
+        p
+    }
+
+    pub fn pos(&self, row: u16, col: u16) -> Pos {
         let mut p = self.start;
         p.x += (col * (self.dx + self.gap)) as i32;
         p.y += (row * (self.dy + self.gap)) as i32;
 
         p
+    }
+
+    pub fn tile(&self, ident: &str) -> Option<Pos> {
+        self.tiles.get(ident).copied()
+    }
+
+    pub fn tile_name(&self, p: Pos) -> Option<&str> {
+        self.tiles
+            .iter()
+            .find(|(_, v)| **v == p)
+            .map(|(k, _)| k.as_str())
     }
 
     pub fn blit_tile(
@@ -76,7 +91,7 @@ impl<'a> TileSet<'a> {
         dest: &mut Surface,
         r: Rect,
     ) -> anyhow::Result<()> {
-        let r_tile = Rect::new(pos.x, pos.y, self.dx, self.dy);
+        let r_tile = Rect::new(pos.x, pos.y, self.dx as u32, self.dy as u32);
         self.s.set_color_mod(color);
         self.s
             .blit_scaled(r_tile, dest, r)

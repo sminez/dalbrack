@@ -5,7 +5,7 @@ pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
     let mut ts = TileSet::urizen()?;
 
-    let player_tile = ts.map_tile(17, 0);
+    let player_tile = ts.map_tile("player", 17, 0);
     let tile_w: u32 = 30;
     let tile_h: u32 = 30;
 

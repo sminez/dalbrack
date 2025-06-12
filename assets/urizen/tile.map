@@ -1,0 +1,26 @@
+path assets/urizen/urizen_onebit_tileset__v1d1.png
+size 12 12
+gap 1
+start 1 1
+
+1 0 arch1 arch2 arch-wide-l arch-wide-r door1 door2 door-wide-l door-wide-r door3 door4 door5 door-stairs gate open-door1 open-door2
+1 23 stair-down stair-up
+2 0 stone1 stone2 stone-hatch stone-window stone-arch-window
+3 0 brick1 brick2 brick3 brick-hatch brick-grate
+4 0 planks1 planks2 planks3 planks-hatch planks-grate
+8 0 tree1 tree2 tree3 tree4 tree5 palm-tree1 palm-tree2
+9 0 cactus leaf1 lilly-pad grass1 grass2 leaf2 reeds plant1 plant2 plant3 plant4 plant5 plant6 plant7 plant8 plant9 plant10 plant11 plant12 plant13 plant14
+10 0 flower1 flower2 mushroom1 mushroom2 stump dead-tree
+11 0 pipe-v1 pipe-v2 pipe-h1 pipe-h2 pipe-turn1 pipe-turn2 pipe-turn3 pipe-turn4 pipe-t1 pipe-t2 pipe-t3 pipe-t4 pipe-cross
+
+# 14, 15, 16 & 17 are humans
+
+18 0 dog cat snake mouse hippo giraffe vulture crab bat elephant whale hedgehog lion turtle
+19 0 beetle butterfly spider mosquito wasp moth snail
+20 0 horse donkey pig rabbit1 rabbit2 hen
+21 0 mushroom steak carrot apple bamboo chicken-leg cherries cheese egg leaf pumpkin fish berries acorn1 acorn2 orange potatoe pear grapes bananas corn turnip leek raddish strawberry
+
+44 78 A B C D E F G H I J K L M N O P Q R S T 1 2 3 4 5
+45 78 U V W X Y Z a b c d e f g h i j k l m n 6 7 8 9 0
+46 78 o p q r s t u v w x y z ( ) [ ] { } < > + - ? ! ^
+47 78 : # _ @ % ~ $ " ' & * = ` | / \ . , ;
