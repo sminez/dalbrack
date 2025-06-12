@@ -5,7 +5,7 @@ use sdl2::{
     rect::Rect,
     surface::Surface,
 };
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pos {
@@ -21,11 +21,10 @@ impl Pos {
 
 pub struct TileSet<'a> {
     s: Surface<'a>,
-    pub dx: u32,
-    pub dy: u32,
+    dx: u32,
+    dy: u32,
     start: Pos,
     gap: u32,
-    char_map: HashMap<char, Pos>,
 }
 
 impl<'a> TileSet<'a> {
@@ -46,7 +45,7 @@ impl<'a> TileSet<'a> {
         start: Pos,
         gap: u32,
     ) -> anyhow::Result<Self> {
-        let s = Surface::from_file(path.as_ref())
+        let s = Surface::from_file(path)
             .map_err(|e| anyhow!("unable to load tileset: {e}"))?
             .convert_format(PixelFormatEnum::ARGB8888)
             .map_err(|e| anyhow!("unable to convert image format: {e}"))?;
@@ -57,15 +56,12 @@ impl<'a> TileSet<'a> {
             dy,
             start,
             gap,
-            char_map: Default::default(),
         })
     }
 
-    pub fn map_tile(&mut self, ch: char, row: u32, col: u32) {
-        self.char_map.insert(ch, self.pos(row, col));
-    }
-
-    pub fn pos(&self, row: u32, col: u32) -> Pos {
+    /// Map a row/column offset within a tilesheet into the correct pixel coordinates for blitting
+    /// the tile.
+    pub fn map_tile(&self, row: u32, col: u32) -> Pos {
         let mut p = self.start;
         p.x += (col * (self.dx + self.gap)) as i32;
         p.y += (row * (self.dy + self.gap)) as i32;
@@ -74,19 +70,6 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn blit_tile(
-        &mut self,
-        ch: char,
-        color: Color,
-        dest: &mut Surface,
-        r: Rect,
-    ) -> anyhow::Result<()> {
-        match self.char_map.get(&ch) {
-            Some(pos) => self.blit_pos(*pos, color, dest, r),
-            None => panic!("unknown tile {ch}"),
-        }
-    }
-
-    pub fn blit_pos(
         &mut self,
         pos: Pos,
         color: Color,

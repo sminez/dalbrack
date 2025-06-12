@@ -79,22 +79,12 @@ impl<'a> Sdl2UI<'a> {
 
     pub fn blit_tile(
         &mut self,
-        ch: char,
-        color: Color,
-        ts: &mut TileSet,
-        r: Rect,
-    ) -> anyhow::Result<()> {
-        ts.blit_tile(ch, color, &mut self.buf, r)
-    }
-
-    pub fn blit_pos(
-        &mut self,
         pos: Pos,
         color: Color,
         ts: &mut TileSet,
         r: Rect,
     ) -> anyhow::Result<()> {
-        ts.blit_pos(pos, color, &mut self.buf, r)
+        ts.blit_tile(pos, color, &mut self.buf, r)
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {

@@ -42,8 +42,8 @@ pub fn main() -> anyhow::Result<()> {
             }
         }
 
-        ui.blit_pos(
-            ts.pos(row, col),
+        ui.blit_tile(
+            ts.map_tile(row, col),
             Color::RGB(255, 0, 0),
             &mut ts,
             Rect::new(50, 50, 100, 100),
