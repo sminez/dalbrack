@@ -5,12 +5,8 @@ pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
     let mut ts = TileSet::urizen()?;
 
-    ts.map_tile('@', 17, 0);
-
-    let mut x: i32 = 0;
-    let mut y: i32 = 0;
-    let tile_w: u32 = 30;
-    let tile_h: u32 = 30;
+    let mut col: u32 = 0;
+    let mut row: u32 = 0;
 
     loop {
         if let Some(evt) = ui.next_event() {
@@ -26,8 +22,8 @@ pub fn main() -> anyhow::Result<()> {
                     repeat: false,
                     ..
                 } => {
-                    x = 0;
-                    y = 0;
+                    row = 0;
+                    col = 0;
                 }
 
                 Event::KeyDown {
@@ -35,10 +31,10 @@ pub fn main() -> anyhow::Result<()> {
                     repeat: false,
                     ..
                 } => match k {
-                    Keycode::Right => x += tile_w as i32,
-                    Keycode::Left => x -= tile_w as i32,
-                    Keycode::Up => y -= tile_h as i32,
-                    Keycode::Down => y += tile_h as i32,
+                    Keycode::Right => col += 1,
+                    Keycode::Left => col = col.saturating_sub(1),
+                    Keycode::Up => row = row.saturating_sub(1),
+                    Keycode::Down => row += 1,
                     _ => (),
                 },
 
@@ -46,12 +42,11 @@ pub fn main() -> anyhow::Result<()> {
             }
         }
 
-        ui.clear();
-        ui.blit_tile(
-            '@',
+        ui.blit_pos(
+            ts.pos(row, col),
             Color::RGB(255, 0, 0),
             &mut ts,
-            Rect::new(x, y, tile_w, tile_h),
+            Rect::new(50, 50, 100, 100),
         )?;
         ui.render()?;
     }

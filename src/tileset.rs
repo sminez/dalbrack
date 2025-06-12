@@ -20,9 +20,9 @@ impl Pos {
 }
 
 pub struct TileSet<'a> {
-    pub s: Surface<'a>,
-    dx: u32,
-    dy: u32,
+    s: Surface<'a>,
+    pub dx: u32,
+    pub dy: u32,
     start: Pos,
     gap: u32,
     char_map: HashMap<char, Pos>,
@@ -82,7 +82,7 @@ impl<'a> TileSet<'a> {
     ) -> anyhow::Result<()> {
         match self.char_map.get(&ch) {
             Some(pos) => self.blit_pos(*pos, color, dest, r),
-            None => Ok(()),
+            None => panic!("unknown tile {ch}"),
         }
     }
 

@@ -72,6 +72,9 @@ impl<'a> Sdl2UI<'a> {
     pub fn clear(&mut self) {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
+        self.buf
+            .fill_rect(Rect::new(0, 0, self.w, self.h), Color::BLACK)
+            .unwrap();
     }
 
     pub fn blit_tile(
