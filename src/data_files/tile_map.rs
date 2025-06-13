@@ -16,8 +16,26 @@ pub fn parse_ibm437_tileset<'a>(
 ) -> anyhow::Result<TileSet<'a>> {
     let mut ts = TileSet::new(path, d, d, Pos::new(0, 0), 0, bg)?;
     let raw = fs::read_to_string("assets/tiles/df/tile.map").context("reading tile.map")?;
-    let mut lines = raw.lines().peekable();
-    parse_lines(&mut lines, &mut ts)?;
+    let lines = raw.lines().peekable();
+
+    for line in lines {
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+
+        let mut words = line.split_whitespace();
+        let (row, mut col) =
+            try_parse_line_pos(&mut words).ok_or_else(|| anyhow!("invalid line: {line:?}"))?;
+
+        for ident in words {
+            if ident == "space" {
+                ts.map_tile(" ", row, col);
+            } else {
+                ts.map_tile(ident, row, col);
+            }
+            col += 1;
+        }
+    }
 
     Ok(ts)
 }
@@ -36,12 +54,7 @@ pub fn parse_tile_map<'a>(path: impl AsRef<Path>) -> anyhow::Result<TileSet<'a>>
         bg,
     } = try_parse_header(&mut lines).ok_or_else(|| anyhow!("invalid tile.map header"))?;
     let mut ts = TileSet::new(path, dx, dy, start, gap, bg)?;
-    parse_lines(&mut lines, &mut ts)?;
 
-    Ok(ts)
-}
-
-fn parse_lines(lines: &mut Peekable<Lines<'_>>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
     for line in lines {
         if line.is_empty() || line.starts_with('#') {
             continue;
@@ -57,7 +70,7 @@ fn parse_lines(lines: &mut Peekable<Lines<'_>>, ts: &mut TileSet<'_>) -> anyhow:
         }
     }
 
-    Ok(())
+    Ok(ts)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -123,7 +136,7 @@ mod tests {
 
     #[test]
     fn try_parse_header_works() {
-        let raw = include_str!("../../assets/urizen/tile.map");
+        let raw = include_str!("../../assets/tiles/urizen/tile.map");
         let opt = try_parse_header(&mut raw.lines().peekable());
         let expected = Header {
             path: "assets/urizen/urizen_onebit_tileset__v1d1.png",
