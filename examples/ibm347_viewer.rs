@@ -1,0 +1,54 @@
+use risky_endevours::{tileset::TileSet, ui::Sdl2UI};
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
+
+const X: i32 = 40;
+const DIM: u32 = X as u32 * 16;
+
+pub fn main() -> anyhow::Result<()> {
+    let mut ui = Sdl2UI::init(DIM, DIM, "Risky Endevours")?;
+    let mut ts = TileSet::df_classic()?;
+
+    loop {
+        if let Some(evt) = ui.next_event() {
+            match evt {
+                Event::Quit { .. } => return Ok(()),
+
+                Event::KeyDown {
+                    keycode: Some(k),
+                    repeat: false,
+                    ..
+                } => match k {
+                    Keycode::Num1 => ts = TileSet::df_classic()?,
+                    Keycode::Num2 => ts = TileSet::df_buddy()?,
+                    Keycode::Num3 => ts = TileSet::df_sb()?,
+                    Keycode::Num4 => ts = TileSet::df_nordic()?,
+                    Keycode::Num5 => ts = TileSet::df_rde()?,
+                    Keycode::Num6 => ts = TileSet::df_yayo()?,
+                    Keycode::Num7 => ts = TileSet::df_acorn()?,
+
+                    Keycode::Space => ui.toggle_debug_bg(),
+                    Keycode::Q | Keycode::Escape => return Ok(()),
+
+                    _ => (),
+                },
+
+                _ => {}
+            }
+        }
+
+        ui.clear();
+        let mut r = Rect::new(0, 0, X as u32, X as u32);
+
+        for row in 0..16 {
+            for col in 0..16 {
+                let pos = ts.pos(row, col);
+                ui.blit_tile(pos, Color::WHITE, &mut ts, r)?;
+                r.x += X;
+            }
+            r.x = 0;
+            r.y += X;
+        }
+
+        ui.render()?;
+    }
+}
