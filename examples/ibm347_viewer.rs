@@ -24,7 +24,7 @@ pub fn main() -> anyhow::Result<()> {
                     Keycode::Num4 => ts = TileSet::df_nordic()?,
                     Keycode::Num5 => ts = TileSet::df_rde()?,
                     Keycode::Num6 => ts = TileSet::df_yayo()?,
-                    Keycode::Num7 => ts = TileSet::df_acorn()?,
+                    Keycode::Num7 => ts = TileSet::df_kruggsmash()?,
 
                     Keycode::Space => ui.toggle_debug_bg(),
                     Keycode::Q | Keycode::Escape => return Ok(()),

@@ -67,12 +67,8 @@ impl<'a> TileSet<'a> {
         )
     }
 
-    pub fn df_acorn() -> anyhow::Result<Self> {
-        parse_ibm437_tileset(
-            "assets/tiles/df/Acorntileset8x8.png",
-            8,
-            Some(Color::MAGENTA),
-        )
+    pub fn df_kruggsmash() -> anyhow::Result<Self> {
+        parse_ibm437_tileset("assets/tiles/df/kruggsmash.png", 32, Some(Color::MAGENTA))
     }
 
     pub(crate) fn new(
