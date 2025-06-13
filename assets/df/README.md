@@ -1,4 +1,4 @@
- Dwarf Fortress Fonts
+# Dwarf Fortress Fonts
 
 All of the files in this directory have been downloaded from https://dwarffortresswiki.org/Tileset_repository
 and are valid Dwarf Fortress tilesets containing 256 tiles corresponding to the [IBM Code Page 437][0].
