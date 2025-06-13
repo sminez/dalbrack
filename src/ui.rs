@@ -19,6 +19,7 @@ pub struct Sdl2UI<'a> {
     buf: Surface<'a>,
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
+    bg: Color,
 }
 
 impl<'a> Sdl2UI<'a> {
@@ -49,7 +50,18 @@ impl<'a> Sdl2UI<'a> {
             buf,
             tc,
             evts,
+            bg: Color::BLACK,
         })
+    }
+
+    /// Toggle the background color between black and magenta to help with debugging rendering
+    /// issues
+    pub fn toggle_debug_bg(&mut self) {
+        if self.bg == Color::BLACK {
+            self.bg = Color::MAGENTA;
+        } else {
+            self.bg = Color::BLACK;
+        }
     }
 
     pub fn next_event(&mut self) -> Option<Event> {
@@ -70,11 +82,9 @@ impl<'a> Sdl2UI<'a> {
     }
 
     pub fn clear(&mut self) {
-        self.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        self.canvas.set_draw_color(self.bg);
         self.canvas.clear();
-        self.buf
-            .fill_rect(Rect::new(0, 0, self.w, self.h), Color::BLACK)
-            .unwrap();
+        self.buf.fill_rect(None, self.bg).unwrap();
     }
 
     pub fn blit_tile(

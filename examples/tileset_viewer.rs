@@ -3,7 +3,8 @@ use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
 
 pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
-    let mut ts = TileSet::urizen()?;
+    let mut ts = TileSet::df_classic()?;
+    // let mut ts = TileSet::urizen()?;
 
     let mut col: u16 = 0;
     let mut row: u16 = 0;
@@ -11,20 +12,7 @@ pub fn main() -> anyhow::Result<()> {
     loop {
         if let Some(evt) = ui.next_event() {
             match evt {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape | Keycode::Q),
-                    ..
-                } => return Ok(()),
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::Space),
-                    repeat: false,
-                    ..
-                } => {
-                    row = 0;
-                    col = 0;
-                }
+                Event::Quit { .. } => return Ok(()),
 
                 Event::KeyDown {
                     keycode: Some(k),
@@ -35,6 +23,10 @@ pub fn main() -> anyhow::Result<()> {
                     Keycode::Left => col = col.saturating_sub(1),
                     Keycode::Up => row = row.saturating_sub(1),
                     Keycode::Down => row += 1,
+
+                    Keycode::Space => ui.toggle_debug_bg(),
+                    Keycode::Q | Keycode::Escape => return Ok(()),
+
                     _ => (),
                 },
 
@@ -51,7 +43,7 @@ pub fn main() -> anyhow::Result<()> {
         // show the coords
         let mut r = Rect::new(50, 200, 50, 50);
         for ch in format!("({row},{col})").chars() {
-            ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::RED, &mut ts, r)?;
+            ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::WHITE, &mut ts, r)?;
             r.x += 40;
         }
 
@@ -59,7 +51,7 @@ pub fn main() -> anyhow::Result<()> {
         if let Some(ident) = ts.tile_name(pos) {
             let mut r = Rect::new(50, 250, 50, 50);
             for ch in ident.to_string().chars() {
-                ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::RED, &mut ts, r)?;
+                ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::WHITE, &mut ts, r)?;
                 r.x += 40;
             }
         }

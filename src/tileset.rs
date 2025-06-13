@@ -1,9 +1,10 @@
-use crate::data_files::parse_tile_map;
+use crate::data_files::{parse_imb437_tileset, parse_tile_map};
 use anyhow::anyhow;
 use sdl2::{
     image::LoadSurface,
     pixels::{Color, PixelFormatEnum},
     rect::Rect,
+    render::BlendMode,
     surface::Surface,
 };
 use std::{collections::HashMap, path::Path};
@@ -34,17 +35,45 @@ impl<'a> TileSet<'a> {
         parse_tile_map("assets/urizen/tile.map")
     }
 
+    pub fn df_classic() -> anyhow::Result<Self> {
+        parse_imb437_tileset(
+            "assets/df/Curses_classic_square_12x12.png",
+            12,
+            Some(Color::MAGENTA),
+        )
+    }
+
+    pub fn df_buddy() -> anyhow::Result<Self> {
+        parse_imb437_tileset("assets/df/Buddy.png", 10, None)
+    }
+
+    pub fn df_sb() -> anyhow::Result<Self> {
+        parse_imb437_tileset("assets/df/16x16_sb_ascii.png", 16, None)
+    }
+
+    pub fn df_nordic() -> anyhow::Result<Self> {
+        parse_imb437_tileset("assets/df/DF-Nordic_v1.png", 16, Some(Color::MAGENTA))
+    }
+
     pub(crate) fn new(
         path: impl AsRef<Path>,
         dx: u16,
         dy: u16,
         start: Pos,
         gap: u16,
+        bg: Option<Color>,
     ) -> anyhow::Result<Self> {
-        let s = Surface::from_file(path)
+        let mut s = Surface::from_file(path)
             .map_err(|e| anyhow!("unable to load tileset: {e}"))?
             .convert_format(PixelFormatEnum::ARGB8888)
             .map_err(|e| anyhow!("unable to convert image format: {e}"))?;
+
+        if let Some(color) = bg {
+            s.set_blend_mode(BlendMode::Blend)
+                .map_err(|e| anyhow!("unable to set blend mode: {e}"))?;
+            s.set_color_key(true, color)
+                .map_err(|e| anyhow!("unable to set color key: {e}"))?;
+        }
 
         Ok(Self {
             s,
