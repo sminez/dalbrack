@@ -15,7 +15,7 @@ pub fn parse_ibm437_tileset<'a>(
     bg: Option<Color>,
 ) -> anyhow::Result<TileSet<'a>> {
     let mut ts = TileSet::new(path, d, d, Pos::new(0, 0), 0, bg)?;
-    let raw = fs::read_to_string("assets/df/tile.map").context("reading tile.map")?;
+    let raw = fs::read_to_string("assets/tiles/df/tile.map").context("reading tile.map")?;
     let mut lines = raw.lines().peekable();
     parse_lines(&mut lines, &mut ts)?;
 
