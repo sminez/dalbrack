@@ -1,4 +1,4 @@
-use crate::data_files::{parse_imb437_tileset, parse_tile_map};
+use crate::data_files::{parse_ibm437_tileset, parse_tile_map};
 use anyhow::anyhow;
 use sdl2::{
     image::LoadSurface,
@@ -36,7 +36,7 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn df_classic() -> anyhow::Result<Self> {
-        parse_imb437_tileset(
+        parse_ibm437_tileset(
             "assets/df/Curses_classic_square_12x12.png",
             12,
             Some(Color::MAGENTA),
@@ -44,15 +44,15 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn df_buddy() -> anyhow::Result<Self> {
-        parse_imb437_tileset("assets/df/Buddy.png", 10, None)
+        parse_ibm437_tileset("assets/df/Buddy.png", 10, None)
     }
 
     pub fn df_sb() -> anyhow::Result<Self> {
-        parse_imb437_tileset("assets/df/16x16_sb_ascii.png", 16, None)
+        parse_ibm437_tileset("assets/df/16x16_sb_ascii.png", 16, None)
     }
 
     pub fn df_nordic() -> anyhow::Result<Self> {
-        parse_imb437_tileset("assets/df/DF-Nordic_v1.png", 16, Some(Color::MAGENTA))
+        parse_ibm437_tileset("assets/df/DF-Nordic_v1.png", 16, Some(Color::MAGENTA))
     }
 
     pub(crate) fn new(
