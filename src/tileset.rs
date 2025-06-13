@@ -55,6 +55,22 @@ impl<'a> TileSet<'a> {
         parse_ibm437_tileset("assets/df/DF-Nordic_v1.png", 16, Some(Color::MAGENTA))
     }
 
+    pub fn df_rde() -> anyhow::Result<Self> {
+        parse_ibm437_tileset("assets/df/RDE_8x8.png", 8, Some(Color::MAGENTA))
+    }
+
+    pub fn df_yayo() -> anyhow::Result<Self> {
+        parse_ibm437_tileset(
+            "assets/df/Yayo_tunur_1040x325.png",
+            13,
+            Some(Color::MAGENTA),
+        )
+    }
+
+    pub fn df_acorn() -> anyhow::Result<Self> {
+        parse_ibm437_tileset("assets/df/Acorntileset8x8.png", 8, Some(Color::MAGENTA))
+    }
+
     pub(crate) fn new(
         path: impl AsRef<Path>,
         dx: u16,

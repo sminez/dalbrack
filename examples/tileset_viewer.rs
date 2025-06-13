@@ -3,7 +3,7 @@ use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
 
 pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
-    let mut ts = TileSet::df_classic()?;
+    let mut ts = TileSet::df_rde()?;
     // let mut ts = TileSet::urizen()?;
 
     let mut col: u16 = 0;
