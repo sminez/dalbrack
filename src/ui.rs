@@ -64,7 +64,11 @@ impl<'a> Sdl2UI<'a> {
         }
     }
 
-    pub fn next_event(&mut self) -> Option<Event> {
+    /// Poll for currently pending events.
+    ///
+    /// Window resize events are handled internally.
+    /// Returns None if no events are pending.
+    pub fn poll_event(&mut self) -> Option<Event> {
         loop {
             match self.evts.poll_event()? {
                 Event::Window {
@@ -77,6 +81,26 @@ impl<'a> Sdl2UI<'a> {
                 }
 
                 evt => return Some(evt),
+            }
+        }
+    }
+
+    /// Block and wait for the next event.
+    ///
+    /// Window resize events are handled internally.
+    pub fn wait_event(&mut self) -> Event {
+        loop {
+            match self.evts.wait_event() {
+                Event::Window {
+                    win_event: WindowEvent::SizeChanged(w, h) | WindowEvent::Resized(w, h),
+                    ..
+                } => {
+                    self.w = w as u32;
+                    self.h = h as u32;
+                    self.buf = Surface::new(w as u32, h as u32, PixelFormatEnum::ARGB8888).unwrap();
+                }
+
+                evt => return evt,
             }
         }
     }
