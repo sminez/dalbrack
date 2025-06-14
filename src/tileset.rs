@@ -1,4 +1,5 @@
 use crate::{
+    Pos,
     data_files::{parse_ibm437_tileset, parse_tile_map},
     grid::{Cell, Grid, Tile},
 };
@@ -11,18 +12,6 @@ use sdl2::{
     surface::Surface,
 };
 use std::{collections::HashMap, ops::Index, path::Path};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Pos {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl Pos {
-    pub const fn new(x: i32, y: i32) -> Self {
-        Self { x, y }
-    }
-}
 
 pub struct TileSet<'a> {
     s: Surface<'a>,

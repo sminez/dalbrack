@@ -1,4 +1,4 @@
-use crate::tileset::{Pos, TileSet};
+use crate::{Pos, tileset::TileSet};
 use anyhow::{Context, anyhow};
 use sdl2::pixels::Color;
 use std::{

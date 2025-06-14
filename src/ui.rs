@@ -42,16 +42,18 @@ impl<'a> Sdl2UI<'a> {
             .build()?;
 
         let mut canvas = win.into_canvas().target_texture().present_vsync().build()?;
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
-        canvas.present();
-
         let tc = canvas.texture_creator();
         let evts = ctx.event_pump().map_err(|e| anyhow!("{e}"))?;
+
         let buf = Surface::new(w, h, PixelFormatEnum::ARGB8888).map_err(|e| anyhow!("{e}"))?;
+
         let ts = TileSet::default();
         let palette = parse_color_palette()?;
         let bg = *palette.get("black").unwrap();
+
+        canvas.set_draw_color(bg);
+        canvas.clear();
+        canvas.present();
 
         Ok(Self {
             w,
