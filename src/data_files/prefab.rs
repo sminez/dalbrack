@@ -3,6 +3,7 @@ use crate::{
     tileset::TileSet,
 };
 use anyhow::{Context, anyhow, bail};
+use sdl2::pixels::Color;
 use std::{collections::HashMap, fs, path::Path};
 
 pub fn parse_ibm437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::Result<Grid> {
@@ -10,8 +11,22 @@ pub fn parse_ibm437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::
     let mut lines = raw.lines().peekable();
     let mut grid = Grid::default();
 
+    let mut colors = HashMap::new();
     let mut defs = HashMap::new();
-    defs.insert(' ', ts.tile_index(" ").unwrap());
+    defs.insert(' ', Cell::new(ts.tile_index(" ").unwrap()));
+
+    // parse colors
+    loop {
+        let line = match lines.next() {
+            None => bail!("invalid prefab: no defs or map provided"),
+            Some("") => break,
+            Some(line) => line,
+        };
+        let (ident, color) =
+            parse_color_def(line).ok_or_else(|| anyhow!("invalid color def: {line:?}"))?;
+
+        colors.insert(ident, color);
+    }
 
     // parse defs
     loop {
@@ -20,18 +35,13 @@ pub fn parse_ibm437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::
             Some("") => break,
             Some(line) => line,
         };
-        let (char, ident) = line
-            .split_once(' ')
-            .ok_or_else(|| anyhow!("invalid def: {line:?}"))?;
+        let (ch, color, ident) =
+            parse_tile_def(line, &colors).ok_or_else(|| anyhow!("invalid tile def: {line:?}"))?;
         let idx = ts
             .tile_index(ident)
-            .ok_or_else(|| anyhow!("invalid tile ident: {ident}"))?;
+            .ok_or_else(|| anyhow!("unknown tile ident: {ident}"))?;
 
-        if char.len() != 1 {
-            bail!("invalid def {char:?}: expected a single char");
-        }
-
-        defs.insert(char.chars().next().unwrap(), idx);
+        defs.insert(ch, Cell::new_with_color(idx, color));
     }
 
     // determine line length for the prefab
@@ -43,10 +53,37 @@ pub fn parse_ibm437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::
     // parse the prefab into cells
     for line in lines {
         for ch in line.chars() {
-            let idx = defs.get(&ch).ok_or_else(|| anyhow!("no def for {ch:?}"))?;
-            grid.cells.push(Cell::new(*idx));
+            let cell = defs.get(&ch).ok_or_else(|| anyhow!("no def for {ch:?}"))?;
+            grid.cells.push(cell.clone());
         }
     }
 
     Ok(grid)
+}
+
+fn parse_color_def(line: &str) -> Option<(&str, Color)> {
+    let (ident, rgb) = line.split_once(' ')?;
+    let (r, gb) = rgb.split_once(' ')?;
+    let (g, b) = gb.split_once(' ')?;
+    let color = Color::RGB(r.parse().ok()?, g.parse().ok()?, b.parse().ok()?);
+
+    Some((ident, color))
+}
+
+fn parse_tile_def<'a>(
+    line: &'a str,
+    colors: &HashMap<&str, Color>,
+) -> Option<(char, Color, &'a str)> {
+    let (char, tail) = line.split_once(' ')?;
+    let (color, ident) = tail.split_once(' ')?;
+
+    let mut chars = char.chars();
+    let ch = chars.next()?;
+    if chars.next().is_some() {
+        return None;
+    }
+
+    let color = *colors.get(color)?;
+
+    Some((ch, color, ident))
 }

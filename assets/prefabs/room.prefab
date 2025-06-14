@@ -1,18 +1,26 @@
-- box-hh
-| box-vv
-1 box-ddrr
-2 box-ddll
-3 box-uurr
-4 box-uull
-@ :)
-D :D
-" box-vvh
-+ box-vh
-= box-vhh
-' box-vvhh
-. shade-light
-, shade-mid
-# shade-dark
+yellow 200 200 0
+cyan 0 200 200
+wall 100 60 20
+door 120 80 40
+grey1 60 60 60
+grey2 40 40 40
+grey3 20 20 20
+
+- wall box-hh
+| wall box-vv
+1 wall box-ddrr
+2 wall box-ddll
+3 wall box-uurr
+4 wall box-uull
+@ yellow :)
+D cyan :D
+" door box-vvh
++ door box-vh
+= door box-vhh
+' door box-vvhh
+. grey1 shade-light
+, grey2 shade-mid
+# grey3 shade-dark
 
 ###################
 #,,,,1------2,,,,,#
