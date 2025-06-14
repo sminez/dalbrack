@@ -5,9 +5,5 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
-libc = "0.2.172"
 rand = "0.9.1"
-rayon = "1.10.0"
 sdl2 = { version = "0.37.0", features = ["image"] }
-serde = { version = "1.0.219", features = ["derive"] }
-shipyard = "0.8.0"
