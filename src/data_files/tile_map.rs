@@ -139,7 +139,7 @@ mod tests {
         let raw = include_str!("../../assets/tiles/urizen/tile.map");
         let opt = try_parse_header(&mut raw.lines().peekable());
         let expected = Header {
-            path: "assets/urizen/urizen_onebit_tileset__v1d1.png",
+            path: "assets/tiles/urizen/urizen_onebit_tileset__v1d1.png",
             dx: 12,
             dy: 12,
             gap: 1,

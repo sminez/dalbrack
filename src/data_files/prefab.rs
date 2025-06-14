@@ -6,27 +6,17 @@ use anyhow::{Context, anyhow, bail};
 use sdl2::pixels::Color;
 use std::{collections::HashMap, fs, path::Path};
 
-pub fn parse_ibm437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::Result<Grid> {
+pub fn parse_ibm437_prefab(
+    path: impl AsRef<Path>,
+    ts: &TileSet<'_>,
+    palette: &HashMap<String, Color>,
+) -> anyhow::Result<Grid> {
     let raw = fs::read_to_string(path).context("reading prefab")?;
     let mut lines = raw.lines().peekable();
     let mut grid = Grid::default();
 
-    let mut colors = HashMap::new();
     let mut defs = HashMap::new();
     defs.insert(' ', Cell::new(ts.tile_index(" ").unwrap()));
-
-    // parse colors
-    loop {
-        let line = match lines.next() {
-            None => bail!("invalid prefab: no defs or map provided"),
-            Some("") => break,
-            Some(line) => line,
-        };
-        let (ident, color) =
-            parse_color_def(line).ok_or_else(|| anyhow!("invalid color def: {line:?}"))?;
-
-        colors.insert(ident, color);
-    }
 
     // parse defs
     loop {
@@ -36,7 +26,7 @@ pub fn parse_ibm437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::
             Some(line) => line,
         };
         let (ch, color, ident) =
-            parse_tile_def(line, &colors).ok_or_else(|| anyhow!("invalid tile def: {line:?}"))?;
+            parse_tile_def(line, palette).ok_or_else(|| anyhow!("invalid tile def: {line:?}"))?;
         let idx = ts
             .tile_index(ident)
             .ok_or_else(|| anyhow!("unknown tile ident: {ident}"))?;
@@ -61,18 +51,9 @@ pub fn parse_ibm437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::
     Ok(grid)
 }
 
-fn parse_color_def(line: &str) -> Option<(&str, Color)> {
-    let (ident, rgb) = line.split_once(' ')?;
-    let (r, gb) = rgb.split_once(' ')?;
-    let (g, b) = gb.split_once(' ')?;
-    let color = Color::RGB(r.parse().ok()?, g.parse().ok()?, b.parse().ok()?);
-
-    Some((ident, color))
-}
-
 fn parse_tile_def<'a>(
     line: &'a str,
-    colors: &HashMap<&str, Color>,
+    colors: &HashMap<String, Color>,
 ) -> Option<(char, Color, &'a str)> {
     let (char, tail) = line.split_once(' ')?;
     let (color, ident) = tail.split_once(' ')?;
@@ -83,7 +64,7 @@ fn parse_tile_def<'a>(
         return None;
     }
 
-    let color = *colors.get(color)?;
+    let color = *colors.get(color.trim())?;
 
-    Some((ch, color, ident))
+    Some((ch, color, ident.trim()))
 }

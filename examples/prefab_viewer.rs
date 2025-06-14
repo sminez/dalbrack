@@ -1,10 +1,13 @@
-use risky_endevours::{data_files::parse_ibm437_prefab, tileset::TileSet, ui::Sdl2UI};
-use sdl2::{event::Event, keyboard::Keycode};
-use std::env::args;
+use risky_endevours::{
+    data_files::{parse_color_palette, parse_ibm437_prefab},
+    tileset::TileSet,
+    ui::Sdl2UI,
+};
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
+use std::{collections::HashMap, env::args};
 
 const X: i32 = 1;
 const Y: i32 = 1;
-const DXY: u32 = 50;
 
 pub fn main() -> anyhow::Result<()> {
     let path = match args().nth(1) {
@@ -12,10 +15,13 @@ pub fn main() -> anyhow::Result<()> {
         None => "assets/prefabs/room.prefab".to_string(),
     };
 
-    let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
+    let mut ui = Sdl2UI::init(1280, 1000, "Risky Endevours")?;
     let mut ts = TileSet::df_classic()?;
+    let palette = parse_color_palette()?;
 
-    render(&path, &mut ui, &mut ts)?;
+    let mut dxy: u32 = 50;
+
+    render(&path, dxy, &mut ui, &mut ts, &palette)?;
 
     loop {
         match ui.wait_event() {
@@ -34,6 +40,9 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::Num6 => ts = TileSet::df_yayo()?,
                 Keycode::Num7 => ts = TileSet::df_kruggsmash()?,
 
+                Keycode::RightBracket => dxy += 5,
+                Keycode::LeftBracket => dxy -= 5,
+
                 Keycode::Space => ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
 
@@ -43,13 +52,19 @@ pub fn main() -> anyhow::Result<()> {
             _ => continue,
         }
 
-        render(&path, &mut ui, &mut ts)?;
+        render(&path, dxy, &mut ui, &mut ts, &palette)?;
     }
 }
 
-fn render(path: &str, ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
-    let grid = parse_ibm437_prefab(path, ts)?;
+fn render(
+    path: &str,
+    dxy: u32,
+    ui: &mut Sdl2UI<'_>,
+    ts: &mut TileSet<'_>,
+    palette: &HashMap<String, Color>,
+) -> anyhow::Result<()> {
+    let grid = parse_ibm437_prefab(path, ts, palette)?;
     ui.clear();
-    ui.blit_grid(&grid, X * DXY as i32, Y * DXY as i32, DXY, ts)?;
+    ui.blit_grid(&grid, X * dxy as i32, Y * dxy as i32, dxy, ts)?;
     ui.render()
 }
