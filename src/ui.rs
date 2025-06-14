@@ -1,6 +1,6 @@
 use crate::{
     data_files::parse_color_palette,
-    grid::{Cell, Grid, Tile},
+    grid::{Grid, Tile},
     tileset::TileSet,
 };
 use anyhow::anyhow;
@@ -146,11 +146,6 @@ impl<'a> Sdl2UI<'a> {
     pub fn blit_tile(&mut self, tile: &Tile, x: u32, y: u32) -> anyhow::Result<()> {
         let r = self.rect_for_coords(x, y);
         self.ts.blit_tile(tile, r, &mut self.buf)
-    }
-
-    pub fn blit_cell(&mut self, cell: &Cell, x: u32, y: u32) -> anyhow::Result<()> {
-        let r = self.rect_for_coords(x, y);
-        self.ts.blit_cell(cell, r, &mut self.buf)
     }
 
     pub fn blit_grid(&mut self, grid: &Grid, x: u32, y: u32) -> anyhow::Result<()> {

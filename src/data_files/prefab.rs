@@ -1,5 +1,5 @@
 use crate::{
-    grid::{Cell, Grid},
+    grid::{Grid, Tile},
     tileset::TileSet,
 };
 use anyhow::{Context, anyhow, bail};
@@ -16,7 +16,7 @@ pub fn parse_ibm437_prefab(
     let mut grid = Grid::default();
 
     let mut defs = HashMap::new();
-    defs.insert(' ', Cell::new(ts.tile_index(" ").unwrap()));
+    defs.insert(' ', Tile::new(ts.tile_index(" ").unwrap()));
 
     // parse defs
     loop {
@@ -31,7 +31,7 @@ pub fn parse_ibm437_prefab(
             .tile_index(ident)
             .ok_or_else(|| anyhow!("unknown tile ident: {ident}"))?;
 
-        defs.insert(ch, Cell::new_with_color(idx, color));
+        defs.insert(ch, Tile::new_with_color(idx, color));
     }
 
     // determine line length for the prefab
@@ -40,11 +40,11 @@ pub fn parse_ibm437_prefab(
         .ok_or_else(|| anyhow!("invalid prefab: no map provided"))?
         .len();
 
-    // parse the prefab into cells
+    // parse the prefab into tiles
     for line in lines {
         for ch in line.chars() {
-            let cell = defs.get(&ch).ok_or_else(|| anyhow!("no def for {ch:?}"))?;
-            grid.cells.push(cell.clone());
+            let tile = defs.get(&ch).ok_or_else(|| anyhow!("no def for {ch:?}"))?;
+            grid.tiles.push(*tile);
         }
     }
 

@@ -1,7 +1,7 @@
 use crate::{
     Pos,
     data_files::{parse_ibm437_tileset, parse_tile_map},
-    grid::{Cell, Grid, Tile},
+    grid::{Grid, Tile},
 };
 use anyhow::anyhow;
 use sdl2::{
@@ -163,14 +163,6 @@ impl<'a> TileSet<'a> {
         Ok(())
     }
 
-    pub fn blit_cell(&mut self, cell: &Cell, r: Rect, dest: &mut Surface) -> anyhow::Result<()> {
-        for tile in cell.iter() {
-            self.blit_tile(tile, r, dest)?;
-        }
-
-        Ok(())
-    }
-
     pub fn blit_grid(
         &mut self,
         grid: &Grid,
@@ -181,9 +173,9 @@ impl<'a> TileSet<'a> {
     ) -> anyhow::Result<()> {
         let mut r = Rect::new(x, y, dxy, dxy);
 
-        for line in grid.cells.chunks(grid.w) {
-            for cell in line {
-                self.blit_cell(cell, r, dest)?;
+        for line in grid.tiles.chunks(grid.w) {
+            for tile in line {
+                self.blit_tile(tile, r, dest)?;
                 r.x += dxy as i32;
             }
             r.x = x;
