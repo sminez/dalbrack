@@ -1,19 +1,20 @@
 use risky_endevours::{tileset::TileSet, ui::Sdl2UI};
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
+
+const DXY: u32 = 30;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
+    let mut ui = Sdl2UI::init(1080, 1000, DXY, "Risky Endevours")?;
     ui.ts = TileSet::df_kruggsmash()?;
 
     let mut player = ui.ts.tile(":)").unwrap();
-    let tile_w: u32 = 30;
-    let tile_h: u32 = 30;
 
     player.color = Color::RED;
-    let mut r = Rect::new(0, 0, tile_w, tile_h);
+    let mut x = 0;
+    let mut y = 0;
 
     ui.clear();
-    ui.blit_tile(&player, r)?;
+    ui.blit_tile(&player, x, y)?;
     ui.render()?;
 
     loop {
@@ -25,14 +26,14 @@ pub fn main() -> anyhow::Result<()> {
                 repeat: false,
                 ..
             } => match k {
-                Keycode::Right => r.x += tile_w as i32,
-                Keycode::Left => r.x -= tile_w as i32,
-                Keycode::Up => r.y -= tile_h as i32,
-                Keycode::Down => r.y += tile_h as i32,
+                Keycode::Right => x += 1,
+                Keycode::Left => x -= 1,
+                Keycode::Up => y -= 1,
+                Keycode::Down => y += 1,
 
                 Keycode::Space => {
-                    r.x = 0;
-                    r.y = 0;
+                    x = 0;
+                    y = 0;
                 }
 
                 Keycode::R => player.color = Color::RED,
@@ -48,7 +49,7 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         ui.clear();
-        ui.blit_tile(&player, r)?;
+        ui.blit_tile(&player, x, y)?;
         ui.render()?;
     }
 }

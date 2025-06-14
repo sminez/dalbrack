@@ -1,11 +1,11 @@
 use risky_endevours::{tileset::TileSet, ui::Sdl2UI};
-use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
+use sdl2::{event::Event, keyboard::Keycode};
 
 const X: i32 = 40;
 const DIM: u32 = X as u32 * 16;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut ui = Sdl2UI::init(DIM, DIM, "Risky Endevours")?;
+    let mut ui = Sdl2UI::init(DIM, DIM, X as u32, "Risky Endevours")?;
 
     render(&mut ui)?;
 
@@ -41,16 +41,12 @@ pub fn main() -> anyhow::Result<()> {
 
 fn render(ui: &mut Sdl2UI<'_>) -> anyhow::Result<()> {
     ui.clear();
-    let mut r = Rect::new(0, 0, X as u32, X as u32);
 
-    for row in 0..16 {
-        for col in 0..16 {
-            let tile = ui.ts.ibm437_tile(row, col);
-            ui.blit_tile(&tile, r)?;
-            r.x += X;
+    for y in 0..16 {
+        for x in 0..16 {
+            let tile = ui.ts.ibm437_tile(y, x);
+            ui.blit_tile(&tile, x as u32, y as u32)?;
         }
-        r.x = 0;
-        r.y += X;
     }
 
     ui.render()

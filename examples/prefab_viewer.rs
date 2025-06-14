@@ -2,8 +2,8 @@ use risky_endevours::{data_files::parse_ibm437_prefab, tileset::TileSet, ui::Sdl
 use sdl2::{event::Event, keyboard::Keycode};
 use std::env::args;
 
-const X: i32 = 1;
-const Y: i32 = 1;
+const X: u32 = 1;
+const Y: u32 = 1;
 
 pub fn main() -> anyhow::Result<()> {
     let path = match args().nth(1) {
@@ -11,10 +11,9 @@ pub fn main() -> anyhow::Result<()> {
         None => "assets/prefabs/room.prefab".to_string(),
     };
 
-    let mut ui = Sdl2UI::init(1280, 1000, "Risky Endevours")?;
-    let mut dxy: u32 = 50;
+    let mut ui = Sdl2UI::init(1280, 1000, 50, "Risky Endevours")?;
 
-    render(&path, dxy, &mut ui)?;
+    render(&path, &mut ui)?;
 
     loop {
         match ui.wait_event() {
@@ -33,8 +32,8 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::Num6 => ui.ts = TileSet::df_yayo()?,
                 Keycode::Num7 => ui.ts = TileSet::df_kruggsmash()?,
 
-                Keycode::RightBracket => dxy += 5,
-                Keycode::LeftBracket => dxy -= 5,
+                Keycode::RightBracket => ui.dxy += 5,
+                Keycode::LeftBracket => ui.dxy -= 5,
 
                 Keycode::Space => ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
@@ -45,13 +44,13 @@ pub fn main() -> anyhow::Result<()> {
             _ => continue,
         }
 
-        render(&path, dxy, &mut ui)?;
+        render(&path, &mut ui)?;
     }
 }
 
-fn render(path: &str, dxy: u32, ui: &mut Sdl2UI<'_>) -> anyhow::Result<()> {
+fn render(path: &str, ui: &mut Sdl2UI<'_>) -> anyhow::Result<()> {
     let grid = parse_ibm437_prefab(path, &ui.ts, &ui.palette)?;
     ui.clear();
-    ui.blit_grid(&grid, X * dxy as i32, Y * dxy as i32, dxy)?;
+    ui.blit_grid(&grid, X, Y)?;
     ui.render()
 }

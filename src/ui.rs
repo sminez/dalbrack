@@ -18,6 +18,7 @@ use std::collections::HashMap;
 pub struct Sdl2UI<'a> {
     w: u32,
     h: u32,
+    pub dxy: u32,
     _ctx: Sdl,
     _video_ss: VideoSubsystem,
     canvas: Canvas<Window>,
@@ -25,12 +26,13 @@ pub struct Sdl2UI<'a> {
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
     bg: Color,
+    debug: bool,
     pub ts: TileSet<'a>,
     pub palette: HashMap<String, Color>,
 }
 
 impl<'a> Sdl2UI<'a> {
-    pub fn init(w: u32, h: u32, window_title: &str) -> anyhow::Result<Self> {
+    pub fn init(w: u32, h: u32, dxy: u32, window_title: &str) -> anyhow::Result<Self> {
         let ctx = sdl2::init().map_err(|e| anyhow!("{e}"))?;
         let video_ss = ctx.video().map_err(|e| anyhow!("{e}"))?;
 
@@ -54,6 +56,7 @@ impl<'a> Sdl2UI<'a> {
         Ok(Self {
             w,
             h,
+            dxy,
             _ctx: ctx,
             _video_ss: video_ss,
             canvas,
@@ -61,6 +64,7 @@ impl<'a> Sdl2UI<'a> {
             tc,
             evts,
             bg,
+            debug: false,
             ts,
             palette,
         })
@@ -69,11 +73,11 @@ impl<'a> Sdl2UI<'a> {
     /// Toggle the background color between black and magenta to help with debugging rendering
     /// issues
     pub fn toggle_debug_bg(&mut self) {
-        if self.bg == Color::BLACK {
-            self.bg = Color::MAGENTA;
-        } else {
-            self.bg = Color::BLACK;
-        }
+        self.debug = !self.debug;
+    }
+
+    fn bg(&self) -> Color {
+        if self.debug { Color::MAGENTA } else { self.bg }
     }
 
     pub fn set_bg(&mut self, color_name: &str) {
@@ -122,21 +126,39 @@ impl<'a> Sdl2UI<'a> {
     }
 
     pub fn clear(&mut self) {
-        self.canvas.set_draw_color(self.bg);
+        let bg = self.bg();
+        self.canvas.set_draw_color(bg);
         self.canvas.clear();
-        self.buf.fill_rect(None, self.bg).unwrap();
+        self.buf.fill_rect(None, bg).unwrap();
     }
 
-    pub fn blit_tile(&mut self, tile: &Tile, r: Rect) -> anyhow::Result<()> {
+    fn rect_for_coords(&self, x: u32, y: u32) -> Rect {
+        Rect::new(
+            (x * self.dxy) as i32,
+            (y * self.dxy) as i32,
+            self.dxy,
+            self.dxy,
+        )
+    }
+
+    pub fn blit_tile(&mut self, tile: &Tile, x: u32, y: u32) -> anyhow::Result<()> {
+        let r = self.rect_for_coords(x, y);
         self.ts.blit_tile(tile, r, &mut self.buf)
     }
 
-    pub fn blit_cell(&mut self, cell: &Cell, r: Rect) -> anyhow::Result<()> {
+    pub fn blit_cell(&mut self, cell: &Cell, x: u32, y: u32) -> anyhow::Result<()> {
+        let r = self.rect_for_coords(x, y);
         self.ts.blit_cell(cell, r, &mut self.buf)
     }
 
-    pub fn blit_grid(&mut self, grid: &Grid, x: i32, y: i32, dxy: u32) -> anyhow::Result<()> {
-        self.ts.blit_grid(grid, x, y, dxy, &mut self.buf)
+    pub fn blit_grid(&mut self, grid: &Grid, x: u32, y: u32) -> anyhow::Result<()> {
+        self.ts.blit_grid(
+            grid,
+            (x * self.dxy) as i32,
+            (y * self.dxy) as i32,
+            self.dxy,
+            &mut self.buf,
+        )
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
