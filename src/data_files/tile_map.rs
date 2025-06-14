@@ -15,7 +15,7 @@ pub fn parse_ibm437_tileset<'a>(
     bg: Option<Color>,
 ) -> anyhow::Result<TileSet<'a>> {
     let mut ts = TileSet::new(path, d, d, Pos::new(0, 0), 0, bg)?;
-    let raw = fs::read_to_string("assets/tiles/df/tile.map").context("reading tile.map")?;
+    let raw = fs::read_to_string("data/tilesets/df/tile.map").context("reading tile.map")?;
     let lines = raw.lines().peekable();
 
     for line in lines {
@@ -136,10 +136,10 @@ mod tests {
 
     #[test]
     fn try_parse_header_works() {
-        let raw = include_str!("../../assets/tiles/urizen/tile.map");
+        let raw = include_str!("../../data/tilesets/urizen/tile.map");
         let opt = try_parse_header(&mut raw.lines().peekable());
         let expected = Header {
-            path: "assets/tiles/urizen/urizen_onebit_tileset__v1d1.png",
+            path: "data/tilesets/urizen/urizen_onebit_tileset__v1d1.png",
             dx: 12,
             dy: 12,
             gap: 1,

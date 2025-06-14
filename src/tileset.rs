@@ -50,43 +50,47 @@ impl<'a> Index<usize> for TileSet<'a> {
 
 impl<'a> TileSet<'a> {
     pub fn urizen() -> anyhow::Result<Self> {
-        parse_tile_map("assets/tiles/urizen/tile.map")
+        parse_tile_map("data/tilesets/urizen/tile.map")
     }
 
     pub fn df_classic() -> anyhow::Result<Self> {
         parse_ibm437_tileset(
-            "assets/tiles/df/Curses_classic_square_12x12.png",
+            "data/tilesets/df/Curses_classic_square_12x12.png",
             12,
             Some(Color::MAGENTA),
         )
     }
 
     pub fn df_buddy() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("assets/tiles/df/Buddy.png", 10, None)
+        parse_ibm437_tileset("data/tilesets/df/Buddy.png", 10, None)
     }
 
     pub fn df_sb() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("assets/tiles/df/16x16_sb_ascii.png", 16, None)
+        parse_ibm437_tileset("data/tilesets/df/16x16_sb_ascii.png", 16, None)
     }
 
     pub fn df_nordic() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("assets/tiles/df/DF-Nordic_v1.png", 16, Some(Color::MAGENTA))
+        parse_ibm437_tileset(
+            "data/tilesets/df/DF-Nordic_v1.png",
+            16,
+            Some(Color::MAGENTA),
+        )
     }
 
     pub fn df_rde() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("assets/tiles/df/RDE_8x8.png", 8, Some(Color::MAGENTA))
+        parse_ibm437_tileset("data/tilesets/df/RDE_8x8.png", 8, Some(Color::MAGENTA))
     }
 
     pub fn df_yayo() -> anyhow::Result<Self> {
         parse_ibm437_tileset(
-            "assets/tiles/df/Yayo_tunur_1040x325.png",
+            "data/tilesets/df/Yayo_tunur_1040x325.png",
             13,
             Some(Color::MAGENTA),
         )
     }
 
     pub fn df_kruggsmash() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("assets/tiles/df/kruggsmash.png", 32, Some(Color::MAGENTA))
+        parse_ibm437_tileset("data/tilesets/df/kruggsmash.png", 32, Some(Color::MAGENTA))
     }
 
     pub(crate) fn new(

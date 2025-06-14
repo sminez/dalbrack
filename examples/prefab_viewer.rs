@@ -8,7 +8,7 @@ const Y: u32 = 1;
 pub fn main() -> anyhow::Result<()> {
     let path = match args().nth(1) {
         Some(path) => path,
-        None => "assets/prefabs/room.prefab".to_string(),
+        None => "data/prefabs/room.prefab".to_string(),
     };
 
     let mut ui = Sdl2UI::init(1280, 1000, 50, "Risky Endevours")?;

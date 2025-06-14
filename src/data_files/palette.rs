@@ -3,7 +3,7 @@ use sdl2::pixels::Color;
 use std::{collections::HashMap, fs};
 
 pub fn parse_color_palette() -> anyhow::Result<HashMap<String, Color>> {
-    let raw = fs::read_to_string("assets/color.palette").context("reading colour.palette")?;
+    let raw = fs::read_to_string("data/color.palette").context("reading colour.palette")?;
     let mut palette = HashMap::new();
 
     for line in raw.lines() {
