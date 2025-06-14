@@ -134,9 +134,7 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn ibm437_tile(&self, row: u16, col: u16) -> Tile {
-        let Pos { x, y } = self.pos(row, col);
-
-        Tile::new((y * 16 + x) as usize)
+        Tile::new((row * 16 + col) as usize)
     }
 
     pub fn tile(&self, ident: &str) -> Option<Tile> {

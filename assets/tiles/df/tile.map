@@ -1,18 +1,18 @@
 # Shared tile identifiers for IMB Code Page 437 tilesets
 
 0 0 null :) :D heart diamond club spade circle circle-inv ring ring-inv male female note1 note2 star
-1 0 right left up-down paragraph section bar up-down-bar arrow-up arrow-down arrow-right arrow-left hook left-right up down
+1 0 tri-right tri-left up-down !! paragraph section bar up-down-bar arrow-up arrow-down arrow-right arrow-left right-angle left-right tri-up tri-down
 2 0 space ! " # $ % & ' ( ) * + , - . /
 3 0 0 1 2 3 4 5 6 7 8 9 : ; < = > ?
 4 0 @ A B C D E F G H I J K L M N O
 5 0 P Q R S T U V W X Y Z [ \ ] ^ _
 6 0 ` a b c d e f g h i j k l m n o
-7 0 p q r s t u v w x y z { | } ~ ^
+7 0 p q r s t u v w x y z { | } ~ house
 8 0 C-cedilla u-umlaut e-acute a-cicumflex a-umlaut a-grave a-angstrom c-cedilla e-circ e-umlaut e-grave i-umlaut i-circ i-grave A-umlaut A-angstrom
 9 0 E-acute ae AE o-circ o-umlaut o-grave u-circ u-grave y-umlaut O-umlaut U-umlaut cent £ yen peseta f-hook
 10 0 a-acute i-acute o-acute u-acute n~ N~ fem-ordinal masc-ordinal ?-inv not-rev not 1/2 1/4 !-inv << >>
 11 0 shade-light shade-mid shade-dark box-v box-vl box-vll box-vvl box-ddl box-dll box-vvll box-vv box-ddll box-uull box-uul box-ull box-dl
 12 0 box-ur box-uh box-dh box-vr box-h box-vh box-vrr box-vvr box-uurr box-ddrr box-uuhh box-ddhh box-vvrr box-hh box-vvhh box-uhh
 13 0 box-uuh box-dhh box-ddh box-uur box-urr box-drr box-ddr box-vvh box-vhh box-ul box-dr square square-lower square-left square-right square-upper
-14 0 alpha beta gamma pi SIGMA sigma mu tau phi theta omega delta inf inf-slash eta nu
-15 0 identity +- >= <= hook-up hook-down divide approx degree dot-fat dot root power squared square
+14 0 alpha beta gamma pi SIGMA sigma mu tau phi theta omega delta inf inf-slash eta intersection
+15 0 tribar +- >= <= hook-up hook-down divide approx degree dot-fat dot root power squared block nbsp
