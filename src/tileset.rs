@@ -1,6 +1,6 @@
 use crate::{
     data_files::{parse_ibm437_tileset, parse_tile_map},
-    map::{Cell, Grid, Tile},
+    grid::{Cell, Grid, Tile},
 };
 use anyhow::anyhow;
 use sdl2::{

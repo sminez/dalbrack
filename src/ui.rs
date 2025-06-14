@@ -1,6 +1,6 @@
 use crate::{
     data_files::parse_color_palette,
-    map::{Cell, Grid, Tile},
+    grid::{Cell, Grid, Tile},
     tileset::TileSet,
 };
 use anyhow::anyhow;

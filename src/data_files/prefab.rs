@@ -1,5 +1,5 @@
 use crate::{
-    map::{Cell, Grid},
+    grid::{Cell, Grid},
     tileset::TileSet,
 };
 use anyhow::{Context, anyhow, bail};
