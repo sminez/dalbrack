@@ -13,7 +13,7 @@ pub fn main() -> anyhow::Result<()> {
     let mut r = Rect::new(0, 0, tile_w, tile_h);
 
     ui.clear();
-    ui.blit_tile(player, &mut ts, r)?;
+    ui.blit_tile(&player, r, &mut ts)?;
     ui.render()?;
 
     loop {
@@ -48,7 +48,7 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         ui.clear();
-        ui.blit_tile(player, &mut ts, r)?;
+        ui.blit_tile(&player, r, &mut ts)?;
         ui.render()?;
     }
 }

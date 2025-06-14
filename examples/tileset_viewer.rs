@@ -41,12 +41,12 @@ fn render(row: u16, col: u16, ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyh
 
     // show the tile itself
     let tile = ts.ibm437_tile(row, col);
-    ui.blit_tile(tile, ts, Rect::new(50, 50, 100, 100))?;
+    ui.blit_tile(&tile, Rect::new(50, 50, 100, 100), ts)?;
 
     // show the coords
     let mut r = Rect::new(50, 200, 50, 50);
     for ch in format!("({row},{col})").chars() {
-        ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), ts, r)?;
+        ui.blit_tile(&ts.tile(&ch.to_string()).unwrap(), r, ts)?;
         r.x += 40;
     }
 
@@ -54,7 +54,7 @@ fn render(row: u16, col: u16, ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyh
     if let Some(ident) = ts.tile_name(tile) {
         let mut r = Rect::new(50, 250, 50, 50);
         for ch in ident.to_string().chars() {
-            ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), ts, r)?;
+            ui.blit_tile(&ts.tile(&ch.to_string()).unwrap(), r, ts)?;
             r.x += 40;
         }
     }

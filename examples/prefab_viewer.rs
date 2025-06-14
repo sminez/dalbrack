@@ -1,7 +1,9 @@
 use risky_endevours::{data_files::parse_ibm437_prefab, tileset::TileSet, ui::Sdl2UI};
-use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
+use sdl2::{event::Event, keyboard::Keycode};
 
-const X: i32 = 50;
+const X: i32 = 1;
+const Y: i32 = 1;
+const DXY: u32 = 50;
 
 pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
@@ -40,19 +42,8 @@ pub fn main() -> anyhow::Result<()> {
 }
 
 fn render(ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
-    let prefab = parse_ibm437_prefab("assets/prefabs/room.prefab", ts)?;
-
+    let grid = parse_ibm437_prefab("assets/prefabs/room.prefab", ts)?;
     ui.clear();
-    let mut r = Rect::new(0, 0, X as u32, X as u32);
-
-    for line in prefab.cells.chunks(prefab.w) {
-        for cell in line {
-            ui.blit_tile(cell[0], ts, r)?;
-            r.x += X;
-        }
-        r.x = 0;
-        r.y += X;
-    }
-
+    ui.blit_grid(&grid, X * DXY as i32, Y * DXY as i32, DXY, ts)?;
     ui.render()
 }

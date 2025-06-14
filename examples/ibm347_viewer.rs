@@ -47,7 +47,7 @@ fn render(ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
     for row in 0..16 {
         for col in 0..16 {
             let tile = ts.ibm437_tile(row, col);
-            ui.blit_tile(tile, ts, r)?;
+            ui.blit_tile(&tile, r, ts)?;
             r.x += X;
         }
         r.x = 0;

@@ -1,4 +1,7 @@
-use crate::{map::Tile, tileset::TileSet};
+use crate::{
+    map::{Cell, Grid, Tile},
+    tileset::TileSet,
+};
 use anyhow::anyhow;
 use sdl2::{
     EventPump, Sdl, VideoSubsystem,
@@ -111,8 +114,23 @@ impl<'a> Sdl2UI<'a> {
         self.buf.fill_rect(None, self.bg).unwrap();
     }
 
-    pub fn blit_tile(&mut self, tile: Tile, ts: &mut TileSet, r: Rect) -> anyhow::Result<()> {
-        ts.blit_tile(tile, &mut self.buf, r)
+    pub fn blit_tile(&mut self, tile: &Tile, r: Rect, ts: &mut TileSet) -> anyhow::Result<()> {
+        ts.blit_tile(tile, r, &mut self.buf)
+    }
+
+    pub fn blit_cell(&mut self, cell: &Cell, r: Rect, ts: &mut TileSet) -> anyhow::Result<()> {
+        ts.blit_cell(cell, r, &mut self.buf)
+    }
+
+    pub fn blit_grid(
+        &mut self,
+        grid: &Grid,
+        x: i32,
+        y: i32,
+        dxy: u32,
+        ts: &mut TileSet,
+    ) -> anyhow::Result<()> {
+        ts.blit_grid(grid, x, y, dxy, &mut self.buf)
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {

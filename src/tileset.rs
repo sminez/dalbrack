@@ -1,6 +1,6 @@
 use crate::{
     data_files::{parse_ibm437_tileset, parse_tile_map},
-    map::Tile,
+    map::{Cell, Grid, Tile},
 };
 use anyhow::anyhow;
 use sdl2::{
@@ -155,13 +155,43 @@ impl<'a> TileSet<'a> {
             .map(|(k, _)| k.as_str())
     }
 
-    pub fn blit_tile(&mut self, tile: Tile, dest: &mut Surface, r: Rect) -> anyhow::Result<()> {
+    pub fn blit_tile(&mut self, tile: &Tile, r: Rect, dest: &mut Surface) -> anyhow::Result<()> {
         let pos = self[tile.idx];
         let r_tile = Rect::new(pos.x, pos.y, self.dx as u32, self.dy as u32);
         self.s.set_color_mod(tile.color);
         self.s
             .blit_scaled(r_tile, dest, r)
             .map_err(|e| anyhow!("unable to blit tile: {e}"))?;
+
+        Ok(())
+    }
+
+    pub fn blit_cell(&mut self, cell: &Cell, r: Rect, dest: &mut Surface) -> anyhow::Result<()> {
+        for tile in cell.iter() {
+            self.blit_tile(tile, r, dest)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn blit_grid(
+        &mut self,
+        grid: &Grid,
+        x: i32,
+        y: i32,
+        dxy: u32,
+        dest: &mut Surface,
+    ) -> anyhow::Result<()> {
+        let mut r = Rect::new(x, y, dxy, dxy);
+
+        for line in grid.cells.chunks(grid.w) {
+            for cell in line {
+                self.blit_cell(cell, r, dest)?;
+                r.x += dxy as i32;
+            }
+            r.x = x;
+            r.y += dxy as i32;
+        }
 
         Ok(())
     }
