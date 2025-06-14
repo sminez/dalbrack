@@ -1,5 +1,5 @@
-use risky_endevours::{data_files::Prefab, tileset::TileSet, ui::Sdl2UI};
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
+use risky_endevours::{data_files::parse_ibm437_prefab, tileset::TileSet, ui::Sdl2UI};
+use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
 
 const X: i32 = 50;
 
@@ -40,15 +40,14 @@ pub fn main() -> anyhow::Result<()> {
 }
 
 fn render(ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
-    let prefab = Prefab::parse_ibm437("assets/prefabs/room.prefab", ts)?;
+    let prefab = parse_ibm437_prefab("assets/prefabs/room.prefab", ts)?;
 
     ui.clear();
     let mut r = Rect::new(0, 0, X as u32, X as u32);
 
     for line in prefab.cells.chunks(prefab.w) {
-        for idx in line {
-            let pos = prefab.tiles[*idx];
-            ui.blit_tile(pos, Color::WHITE, ts, r)?;
+        for cell in line {
+            ui.blit_tile(cell[0], ts, r)?;
             r.x += X;
         }
         r.x = 0;

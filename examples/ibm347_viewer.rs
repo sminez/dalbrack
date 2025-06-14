@@ -1,5 +1,5 @@
 use risky_endevours::{tileset::TileSet, ui::Sdl2UI};
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
+use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
 
 const X: i32 = 40;
 const DIM: u32 = X as u32 * 16;
@@ -46,8 +46,8 @@ fn render(ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
 
     for row in 0..16 {
         for col in 0..16 {
-            let pos = ts.pos(row, col);
-            ui.blit_tile(pos, Color::WHITE, ts, r)?;
+            let tile = ts.ibm437_tile(row, col);
+            ui.blit_tile(tile, ts, r)?;
             r.x += X;
         }
         r.x = 0;

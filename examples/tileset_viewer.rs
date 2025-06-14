@@ -1,5 +1,5 @@
 use risky_endevours::{tileset::TileSet, ui::Sdl2UI};
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
+use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
 
 pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
@@ -40,21 +40,21 @@ fn render(row: u16, col: u16, ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyh
     ui.clear();
 
     // show the tile itself
-    let pos = ts.pos(row, col);
-    ui.blit_tile(pos, Color::WHITE, ts, Rect::new(50, 50, 100, 100))?;
+    let tile = ts.ibm437_tile(row, col);
+    ui.blit_tile(tile, ts, Rect::new(50, 50, 100, 100))?;
 
     // show the coords
     let mut r = Rect::new(50, 200, 50, 50);
     for ch in format!("({row},{col})").chars() {
-        ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::WHITE, ts, r)?;
+        ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), ts, r)?;
         r.x += 40;
     }
 
     // show the ident (if there is one)
-    if let Some(ident) = ts.tile_name(pos) {
+    if let Some(ident) = ts.tile_name(tile) {
         let mut r = Rect::new(50, 250, 50, 50);
         for ch in ident.to_string().chars() {
-            ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), Color::WHITE, ts, r)?;
+            ui.blit_tile(ts.tile(&ch.to_string()).unwrap(), ts, r)?;
             r.x += 40;
         }
     }

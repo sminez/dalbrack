@@ -1,4 +1,7 @@
-use crate::data_files::{parse_ibm437_tileset, parse_tile_map};
+use crate::{
+    data_files::{parse_ibm437_tileset, parse_tile_map},
+    map::Tile,
+};
 use anyhow::anyhow;
 use sdl2::{
     image::LoadSurface,
@@ -7,7 +10,7 @@ use sdl2::{
     render::BlendMode,
     surface::Surface,
 };
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, ops::Index, path::Path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pos {
@@ -27,7 +30,16 @@ pub struct TileSet<'a> {
     dy: u16,
     start: Pos,
     gap: u16,
-    tiles: HashMap<String, Pos>,
+    tiles: Vec<Pos>,
+    idents: HashMap<String, usize>,
+}
+
+impl<'a> Index<usize> for TileSet<'a> {
+    type Output = Pos;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.tiles[index]
+    }
 }
 
 impl<'a> TileSet<'a> {
@@ -97,17 +109,20 @@ impl<'a> TileSet<'a> {
             dy,
             start,
             gap,
-            tiles: HashMap::new(),
+            tiles: Vec::new(),
+            idents: HashMap::new(),
         })
     }
 
     /// Map a row/column offset within a tilesheet into the correct pixel coordinates for blitting
     /// the tile.
-    pub fn map_tile(&mut self, ident: impl Into<String>, row: u16, col: u16) -> Pos {
+    pub fn map_tile(&mut self, ident: impl Into<String>, row: u16, col: u16) -> Tile {
         let p = self.pos(row, col);
-        self.tiles.insert(ident.into(), p);
+        let idx = self.tiles.len();
+        self.tiles.push(p);
+        self.idents.insert(ident.into(), idx);
 
-        p
+        Tile::new(idx)
     }
 
     pub fn pos(&self, row: u16, col: u16) -> Pos {
@@ -118,30 +133,58 @@ impl<'a> TileSet<'a> {
         p
     }
 
-    pub fn tile(&self, ident: &str) -> Option<Pos> {
-        self.tiles.get(ident).copied()
+    pub fn ibm437_tile(&self, row: u16, col: u16) -> Tile {
+        let Pos { x, y } = self.pos(row, col);
+
+        Tile::new((y * 16 + x) as usize)
     }
 
-    pub fn tile_name(&self, p: Pos) -> Option<&str> {
-        self.tiles
+    pub fn tile(&self, ident: &str) -> Option<Tile> {
+        self.idents.get(ident).map(|&idx| Tile::new(idx))
+    }
+
+    pub fn tile_index(&self, ident: &str) -> Option<usize> {
+        self.idents.get(ident).copied()
+    }
+
+    pub fn tile_name(&self, t: impl AsTileIndex) -> Option<&str> {
+        let idx = t.as_index(self)?;
+        self.idents
             .iter()
-            .find(|(_, v)| **v == p)
+            .find(|(_, v)| **v == idx)
             .map(|(k, _)| k.as_str())
     }
 
-    pub fn blit_tile(
-        &mut self,
-        pos: Pos,
-        color: Color,
-        dest: &mut Surface,
-        r: Rect,
-    ) -> anyhow::Result<()> {
+    pub fn blit_tile(&mut self, tile: Tile, dest: &mut Surface, r: Rect) -> anyhow::Result<()> {
+        let pos = self[tile.idx];
         let r_tile = Rect::new(pos.x, pos.y, self.dx as u32, self.dy as u32);
-        self.s.set_color_mod(color);
+        self.s.set_color_mod(tile.color);
         self.s
             .blit_scaled(r_tile, dest, r)
             .map_err(|e| anyhow!("unable to blit tile: {e}"))?;
 
         Ok(())
+    }
+}
+
+pub trait AsTileIndex {
+    fn as_index(&self, ts: &TileSet<'_>) -> Option<usize>;
+}
+
+impl AsTileIndex for usize {
+    fn as_index(&self, _ts: &TileSet<'_>) -> Option<usize> {
+        Some(*self)
+    }
+}
+
+impl AsTileIndex for Pos {
+    fn as_index(&self, ts: &TileSet<'_>) -> Option<usize> {
+        ts.tiles.iter().position(|pos| pos == self)
+    }
+}
+
+impl AsTileIndex for Tile {
+    fn as_index(&self, _ts: &TileSet<'_>) -> Option<usize> {
+        Some(self.idx)
     }
 }

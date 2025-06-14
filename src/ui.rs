@@ -1,4 +1,4 @@
-use crate::tileset::{Pos, TileSet};
+use crate::{map::Tile, tileset::TileSet};
 use anyhow::anyhow;
 use sdl2::{
     EventPump, Sdl, VideoSubsystem,
@@ -111,14 +111,8 @@ impl<'a> Sdl2UI<'a> {
         self.buf.fill_rect(None, self.bg).unwrap();
     }
 
-    pub fn blit_tile(
-        &mut self,
-        pos: Pos,
-        color: Color,
-        ts: &mut TileSet,
-        r: Rect,
-    ) -> anyhow::Result<()> {
-        ts.blit_tile(pos, color, &mut self.buf, r)
+    pub fn blit_tile(&mut self, tile: Tile, ts: &mut TileSet, r: Rect) -> anyhow::Result<()> {
+        ts.blit_tile(tile, &mut self.buf, r)
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
