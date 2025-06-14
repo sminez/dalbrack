@@ -1,15 +1,21 @@
 use risky_endevours::{data_files::parse_ibm437_prefab, tileset::TileSet, ui::Sdl2UI};
 use sdl2::{event::Event, keyboard::Keycode};
+use std::env::args;
 
 const X: i32 = 1;
 const Y: i32 = 1;
 const DXY: u32 = 50;
 
 pub fn main() -> anyhow::Result<()> {
+    let path = match args().nth(1) {
+        Some(path) => path,
+        None => "assets/prefabs/room.prefab".to_string(),
+    };
+
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
     let mut ts = TileSet::df_classic()?;
 
-    render(&mut ui, &mut ts)?;
+    render(&path, &mut ui, &mut ts)?;
 
     loop {
         match ui.wait_event() {
@@ -37,12 +43,12 @@ pub fn main() -> anyhow::Result<()> {
             _ => continue,
         }
 
-        render(&mut ui, &mut ts)?;
+        render(&path, &mut ui, &mut ts)?;
     }
 }
 
-fn render(ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
-    let grid = parse_ibm437_prefab("assets/prefabs/room.prefab", ts)?;
+fn render(path: &str, ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
+    let grid = parse_ibm437_prefab(path, ts)?;
     ui.clear();
     ui.blit_grid(&grid, X * DXY as i32, Y * DXY as i32, DXY, ts)?;
     ui.render()
