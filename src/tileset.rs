@@ -34,6 +34,12 @@ pub struct TileSet<'a> {
     idents: HashMap<String, usize>,
 }
 
+impl<'a> Default for TileSet<'a> {
+    fn default() -> Self {
+        Self::df_classic().unwrap()
+    }
+}
+
 impl<'a> Index<usize> for TileSet<'a> {
     type Output = Pos;
 

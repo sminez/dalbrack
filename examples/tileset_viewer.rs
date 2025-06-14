@@ -3,11 +3,11 @@ use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
 
 pub fn main() -> anyhow::Result<()> {
     let mut ui = Sdl2UI::init(1080, 1000, "Risky Endevours")?;
-    let mut ts = TileSet::df_rde()?;
+    ui.ts = TileSet::df_rde()?;
 
     let mut col: u16 = 0;
     let mut row: u16 = 0;
-    render(row, col, &mut ui, &mut ts)?;
+    render(row, col, &mut ui)?;
 
     loop {
         match ui.wait_event() {
@@ -32,29 +32,29 @@ pub fn main() -> anyhow::Result<()> {
             _ => continue,
         }
 
-        render(row, col, &mut ui, &mut ts)?;
+        render(row, col, &mut ui)?;
     }
 }
 
-fn render(row: u16, col: u16, ui: &mut Sdl2UI<'_>, ts: &mut TileSet<'_>) -> anyhow::Result<()> {
+fn render(row: u16, col: u16, ui: &mut Sdl2UI<'_>) -> anyhow::Result<()> {
     ui.clear();
 
     // show the tile itself
-    let tile = ts.ibm437_tile(row, col);
-    ui.blit_tile(&tile, Rect::new(50, 50, 100, 100), ts)?;
+    let tile = ui.ts.ibm437_tile(row, col);
+    ui.blit_tile(&tile, Rect::new(50, 50, 100, 100))?;
 
     // show the coords
     let mut r = Rect::new(50, 200, 50, 50);
     for ch in format!("({row},{col})").chars() {
-        ui.blit_tile(&ts.tile(&ch.to_string()).unwrap(), r, ts)?;
+        ui.blit_tile(&ui.ts.tile(&ch.to_string()).unwrap(), r)?;
         r.x += 40;
     }
 
     // show the ident (if there is one)
-    if let Some(ident) = ts.tile_name(tile) {
+    if let Some(ident) = ui.ts.tile_name(tile) {
         let mut r = Rect::new(50, 250, 50, 50);
         for ch in ident.to_string().chars() {
-            ui.blit_tile(&ts.tile(&ch.to_string()).unwrap(), r, ts)?;
+            ui.blit_tile(&ui.ts.tile(&ch.to_string()).unwrap(), r)?;
             r.x += 40;
         }
     }

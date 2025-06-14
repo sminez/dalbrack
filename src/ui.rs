@@ -1,4 +1,5 @@
 use crate::{
+    data_files::parse_color_palette,
     map::{Cell, Grid, Tile},
     tileset::TileSet,
 };
@@ -12,6 +13,7 @@ use sdl2::{
     surface::Surface,
     video::{Window, WindowContext},
 };
+use std::collections::HashMap;
 
 pub struct Sdl2UI<'a> {
     w: u32,
@@ -23,6 +25,8 @@ pub struct Sdl2UI<'a> {
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
     bg: Color,
+    pub ts: TileSet<'a>,
+    pub palette: HashMap<String, Color>,
 }
 
 impl<'a> Sdl2UI<'a> {
@@ -43,6 +47,9 @@ impl<'a> Sdl2UI<'a> {
         let tc = canvas.texture_creator();
         let evts = ctx.event_pump().map_err(|e| anyhow!("{e}"))?;
         let buf = Surface::new(w, h, PixelFormatEnum::ARGB8888).map_err(|e| anyhow!("{e}"))?;
+        let ts = TileSet::default();
+        let palette = parse_color_palette()?;
+        let bg = *palette.get("black").unwrap();
 
         Ok(Self {
             w,
@@ -53,7 +60,9 @@ impl<'a> Sdl2UI<'a> {
             buf,
             tc,
             evts,
-            bg: Color::BLACK,
+            bg,
+            ts,
+            palette,
         })
     }
 
@@ -65,6 +74,10 @@ impl<'a> Sdl2UI<'a> {
         } else {
             self.bg = Color::BLACK;
         }
+    }
+
+    pub fn set_bg(&mut self, color_name: &str) {
+        self.bg = *self.palette.get(color_name).unwrap();
     }
 
     /// Poll for currently pending events.
@@ -114,23 +127,16 @@ impl<'a> Sdl2UI<'a> {
         self.buf.fill_rect(None, self.bg).unwrap();
     }
 
-    pub fn blit_tile(&mut self, tile: &Tile, r: Rect, ts: &mut TileSet) -> anyhow::Result<()> {
-        ts.blit_tile(tile, r, &mut self.buf)
+    pub fn blit_tile(&mut self, tile: &Tile, r: Rect) -> anyhow::Result<()> {
+        self.ts.blit_tile(tile, r, &mut self.buf)
     }
 
-    pub fn blit_cell(&mut self, cell: &Cell, r: Rect, ts: &mut TileSet) -> anyhow::Result<()> {
-        ts.blit_cell(cell, r, &mut self.buf)
+    pub fn blit_cell(&mut self, cell: &Cell, r: Rect) -> anyhow::Result<()> {
+        self.ts.blit_cell(cell, r, &mut self.buf)
     }
 
-    pub fn blit_grid(
-        &mut self,
-        grid: &Grid,
-        x: i32,
-        y: i32,
-        dxy: u32,
-        ts: &mut TileSet,
-    ) -> anyhow::Result<()> {
-        ts.blit_grid(grid, x, y, dxy, &mut self.buf)
+    pub fn blit_grid(&mut self, grid: &Grid, x: i32, y: i32, dxy: u32) -> anyhow::Result<()> {
+        self.ts.blit_grid(grid, x, y, dxy, &mut self.buf)
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
