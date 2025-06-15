@@ -1,4 +1,4 @@
-use crate::{Pos, grid::Tile, state::State};
+use crate::{Pos, state::State, tileset::Tile};
 use hecs::Bundle;
 use rand::{Rng, rng};
 use std::cmp::{max, min};

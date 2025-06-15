@@ -1,5 +1,10 @@
 //! The global state of the game
-use crate::{Pos, data_files::parse_color_palette, grid::Tile, tileset::TileSet, ui::Sdl2UI};
+use crate::{
+    Pos,
+    data_files::parse_color_palette,
+    tileset::{Tile, TileSet},
+    ui::Sdl2UI,
+};
 use hecs::World;
 use sdl2::{pixels::Color, rect::Rect};
 use std::collections::HashMap;

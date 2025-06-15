@@ -1,9 +1,8 @@
 use dalbrack::{
     Pos,
-    grid::Tile,
     mob::{Mob, RandomMoveAI},
     state::State,
-    tileset::TileSet,
+    tileset::{Tile, TileSet},
 };
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton};
 use std::time::Instant;

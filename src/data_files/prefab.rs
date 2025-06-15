@@ -1,7 +1,4 @@
-use crate::{
-    grid::{Grid, Tile},
-    tileset::TileSet,
-};
+use crate::tileset::{Grid, Tile, TileSet};
 use anyhow::{Context, anyhow, bail};
 use sdl2::pixels::Color;
 use std::{collections::HashMap, fs, path::Path};
