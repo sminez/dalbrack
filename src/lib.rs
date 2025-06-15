@@ -1,4 +1,5 @@
 pub mod data_files;
+pub mod map;
 pub mod mob;
 pub mod state;
 pub mod tileset;
