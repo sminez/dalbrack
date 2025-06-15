@@ -39,7 +39,7 @@ impl MapBuilder for SimpleDungeon {
                 continue;
             }
 
-            map.carve_room(r_new);
+            map.carve_rect(r_new);
 
             if !rooms.is_empty() {
                 let new = r_new.center();

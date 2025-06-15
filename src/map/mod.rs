@@ -1,15 +1,15 @@
-use crate::{
-    Pos,
-    state::State,
-    tileset::{Tile, TileSet},
-};
-use sdl2::{pixels::Color, rect::Rect};
+use crate::{Pos, state::State};
+use sdl2::rect::Rect;
 use std::{
     cmp::{max, min},
-    collections::HashMap,
+    collections::HashSet,
 };
 
 pub mod builders;
+mod fov;
+pub mod map_tile;
+
+pub use map_tile::MapTile;
 
 const WALL: usize = 0;
 const FLOOR: usize = 1;
@@ -26,6 +26,7 @@ pub struct Map {
     pub explored: Vec<usize>,
     pub tile_defs: Vec<MapTile>,
     pub w: usize,
+    pub h: usize,
 }
 
 impl Map {
@@ -39,12 +40,17 @@ impl Map {
                 // MapTile::door(&state.ts, &state.palette),
             ],
             w,
+            h,
         }
     }
 
     #[inline]
     fn idx(&self, x: usize, y: usize) -> usize {
         y * self.w + x
+    }
+
+    fn pos_idx(&self, Pos { x, y }: Pos) -> usize {
+        y as usize * self.w + x as usize
     }
 
     pub fn tile_at(&self, pos: Pos) -> &MapTile {
@@ -54,7 +60,14 @@ impl Map {
         &self.tile_defs[tile_idx]
     }
 
-    pub fn carve_room(&mut self, r: Rect) {
+    /// Compute the FOV from a given point in terms of tile indices
+    ///
+    /// See https://www.roguebasin.com/index.php/FOV_using_recursive_shadowcasting
+    pub fn fov(&self, from: Pos, range: u32) -> HashSet<Pos> {
+        fov::determine_fov(self, from, range)
+    }
+
+    pub fn carve_rect(&mut self, r: Rect) {
         for y in r.y..r.y + r.h {
             for x in r.x..r.x + r.w {
                 let idx = self.idx(x as usize, y as usize);
@@ -76,46 +89,4 @@ impl Map {
             self.tiles[idx] = FLOOR;
         }
     }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct MapTile {
-    pub t: Tile,
-    pub path_cost: Option<u8>,
-    pub block_move: bool,
-    pub block_sight: bool,
-}
-
-impl MapTile {
-    pub fn new(
-        ident: &str,
-        color: &str,
-        path_cost: Option<u8>,
-        block_move: bool,
-        block_sight: bool,
-        ts: &TileSet<'_>,
-        palette: &HashMap<String, Color>,
-    ) -> Self {
-        let idx = ts.tile_index(ident).unwrap();
-        let color = *palette.get(color).unwrap();
-
-        Self {
-            t: Tile::new_with_color(idx, color),
-            path_cost,
-            block_move,
-            block_sight,
-        }
-    }
-
-    pub fn wall(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
-        Self::new("shade-mid", "grey14", None, true, true, ts, palette)
-    }
-
-    pub fn floor(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
-        Self::new(" ", "grey12", Some(1), false, false, ts, palette)
-    }
-
-    //     pub fn door(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
-    //         Self::new("=", "faded_orange", Some(2), true, true, ts, palette)
-    //     }
 }

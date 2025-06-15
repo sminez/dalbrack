@@ -3,6 +3,7 @@ use crate::{
     Pos,
     data_files::parse_color_palette,
     map::Map,
+    player::Player,
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
 };
@@ -12,6 +13,7 @@ use std::collections::HashMap;
 
 pub struct State<'a> {
     pub world: World,
+    pub e_player: Entity,
     pub e_map: Entity,
     pub ui: Sdl2UI<'a>,
     pub ts: TileSet<'a>,
@@ -25,10 +27,12 @@ impl<'a> State<'a> {
         let bg = *palette.get("black").unwrap();
         let ui = Sdl2UI::init(w, h, dxy, window_title, bg)?;
         let mut world = World::new();
+        let e_player = world.spawn(());
         let e_map = world.spawn(());
 
         Ok(State {
             world,
+            e_player,
             e_map,
             ui,
             ts,
@@ -58,10 +62,18 @@ impl<'a> State<'a> {
     }
 
     fn blit_map(&mut self) -> anyhow::Result<()> {
+        let player_pos = match self.world.query_one_mut::<(&Player, &Pos)>(self.e_player) {
+            Ok((_, pos)) => Some(*pos),
+            Err(_) => None,
+        };
+
         let map = match self.world.query_one_mut::<&Map>(self.e_map) {
             Ok(map) => map,
             Err(_) => return Ok(()), // no map to render
         };
+
+        let player_fov_range = 10;
+        let fov = player_pos.map(|p| map.fov(p, player_fov_range));
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
@@ -76,7 +88,14 @@ impl<'a> State<'a> {
 
                 r.x = x as i32 * dxy;
                 r.y = y as i32 * dxy;
-                let tile = &map.tile_defs[*tile_idx];
+                let mut tile = map.tile_defs[*tile_idx];
+
+                if let Some(fov) = fov.as_ref() {
+                    if !fov.contains(&Pos::new(x as i32, y as i32)) {
+                        tile.t.color = *self.palette.get("grey15").unwrap();
+                    }
+                }
+
                 self.ts.blit_tile(&tile.t, r, &mut self.ui.buf)?;
             }
         }

@@ -6,7 +6,7 @@ pub mod state;
 pub mod tileset;
 pub mod ui;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos {
     pub x: i32,
     pub y: i32,

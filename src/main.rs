@@ -19,7 +19,7 @@ pub fn main() -> anyhow::Result<()> {
     state.set_map(map);
 
     let player_sprite = state.tile_with_color(":D", "bright_purple");
-    state.world.spawn((Player, pos, player_sprite));
+    state.e_player = state.world.spawn((Player, pos, player_sprite));
 
     state.ui.clear();
     state.blit_all()?;
