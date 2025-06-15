@@ -1,9 +1,9 @@
-use risky_endevours::{data_files::parse_ibm437_prefab, tileset::TileSet, ui::Sdl2UI};
+use risky_endevours::{data_files::parse_ibm437_prefab, state::State, tileset::TileSet};
 use sdl2::{event::Event, keyboard::Keycode};
 use std::env::args;
 
-const X: u32 = 1;
-const Y: u32 = 1;
+const X: i32 = 1;
+const Y: i32 = 1;
 
 pub fn main() -> anyhow::Result<()> {
     let path = match args().nth(1) {
@@ -11,12 +11,11 @@ pub fn main() -> anyhow::Result<()> {
         None => "data/prefabs/room.prefab".to_string(),
     };
 
-    let mut ui = Sdl2UI::init(1280, 1000, 50, "Risky Endevours")?;
-
-    render(&path, &mut ui)?;
+    let mut state = State::init(1280, 1000, 50, "Risky Endevours")?;
+    update(&path, &mut state)?;
 
     loop {
-        match ui.wait_event() {
+        match state.ui.wait_event() {
             Event::Quit { .. } => return Ok(()),
 
             Event::KeyDown {
@@ -24,18 +23,18 @@ pub fn main() -> anyhow::Result<()> {
                 repeat: false,
                 ..
             } => match k {
-                Keycode::Num1 => ui.ts = TileSet::df_classic()?,
-                Keycode::Num2 => ui.ts = TileSet::df_buddy()?,
-                Keycode::Num3 => ui.ts = TileSet::df_sb()?,
-                Keycode::Num4 => ui.ts = TileSet::df_nordic()?,
-                Keycode::Num5 => ui.ts = TileSet::df_rde()?,
-                Keycode::Num6 => ui.ts = TileSet::df_yayo()?,
-                Keycode::Num7 => ui.ts = TileSet::df_kruggsmash()?,
+                Keycode::Num1 => state.ts = TileSet::df_classic()?,
+                Keycode::Num2 => state.ts = TileSet::df_buddy()?,
+                Keycode::Num3 => state.ts = TileSet::df_sb()?,
+                Keycode::Num4 => state.ts = TileSet::df_nordic()?,
+                Keycode::Num5 => state.ts = TileSet::df_rde()?,
+                Keycode::Num6 => state.ts = TileSet::df_yayo()?,
+                Keycode::Num7 => state.ts = TileSet::df_kruggsmash()?,
 
-                Keycode::RightBracket => ui.dxy += 5,
-                Keycode::LeftBracket => ui.dxy -= 5,
+                Keycode::RightBracket => state.ui.dxy += 5,
+                Keycode::LeftBracket => state.ui.dxy -= 5,
 
-                Keycode::Space => ui.toggle_debug_bg(),
+                Keycode::Space => state.ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
 
                 _ => continue,
@@ -44,13 +43,16 @@ pub fn main() -> anyhow::Result<()> {
             _ => continue,
         }
 
-        render(&path, &mut ui)?;
+        update(&path, &mut state)?;
     }
 }
 
-fn render(path: &str, ui: &mut Sdl2UI<'_>) -> anyhow::Result<()> {
-    let grid = parse_ibm437_prefab(path, &ui.ts, &ui.palette)?;
-    ui.clear();
-    ui.blit_grid(&grid, X, Y)?;
-    ui.render()
+fn update(path: &str, state: &mut State<'_>) -> anyhow::Result<()> {
+    let grid = parse_ibm437_prefab(path, &state.ts, &state.palette)?;
+    state.world.clear();
+    grid.spawn_all_at(X, Y, &mut state.world);
+
+    state.ui.clear();
+    state.blit_all()?;
+    state.ui.render()
 }

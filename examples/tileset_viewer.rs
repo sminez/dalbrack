@@ -1,16 +1,22 @@
-use risky_endevours::{tileset::TileSet, ui::Sdl2UI};
+use hecs::Entity;
+use risky_endevours::{Pos, state::State, tileset::TileSet};
 use sdl2::{event::Event, keyboard::Keycode};
 
 pub fn main() -> anyhow::Result<()> {
-    let mut ui = Sdl2UI::init(1080, 1000, 50, "Risky Endevours")?;
-    ui.ts = TileSet::df_rde()?;
+    let mut state = State::init(1080, 1000, 50, "Risky Endevours")?;
+    state.ts = TileSet::df_rde()?;
 
     let mut col: u16 = 0;
     let mut row: u16 = 0;
-    render(row, col, &mut ui)?;
+
+    let e_tile = state.world.spawn((Pos::new(1, 1),));
+    let e_coords = state.world.spawn((Pos::new(1, 3),));
+    let e_ident = state.world.spawn((Pos::new(1, 4),));
+
+    update(e_tile, e_coords, e_ident, row, col, &mut state)?;
 
     loop {
-        match ui.wait_event() {
+        match state.ui.wait_event() {
             Event::Quit { .. } => return Ok(()),
 
             Event::KeyDown {
@@ -23,7 +29,7 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::Up => row = row.saturating_sub(1),
                 Keycode::Down => row += 1,
 
-                Keycode::Space => ui.toggle_debug_bg(),
+                Keycode::Space => state.ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
 
                 _ => continue,
@@ -32,32 +38,32 @@ pub fn main() -> anyhow::Result<()> {
             _ => continue,
         }
 
-        render(row, col, &mut ui)?;
+        update(e_tile, e_coords, e_ident, row, col, &mut state)?;
     }
 }
 
-fn render(row: u16, col: u16, ui: &mut Sdl2UI<'_>) -> anyhow::Result<()> {
-    ui.clear();
+fn update(
+    e_tile: Entity,
+    e_coords: Entity,
+    e_ident: Entity,
+    row: u16,
+    col: u16,
+    state: &mut State<'_>,
+) -> anyhow::Result<()> {
+    let coords = format!("({row},{col})");
+    let tile = state.ts.ibm437_tile(row, col);
+    let ident = match state.ts.tile_name(tile) {
+        Some(ident) => ident.to_string(),
+        None => String::new(),
+    };
 
-    // show the tile itself
-    let tile = ui.ts.ibm437_tile(row, col);
-    ui.blit_tile(&tile, 1, 1)?;
+    state.world.insert_one(e_tile, tile)?;
+    state.world.insert_one(e_coords, coords)?;
+    state.world.insert_one(e_ident, ident)?;
 
-    // show the coords
-    let mut x = 1;
-    for ch in format!("({row},{col})").chars() {
-        ui.blit_tile(&ui.ts.tile(&ch.to_string()).unwrap(), x, 3)?;
-        x += 1;
-    }
+    state.ui.clear();
+    state.blit_all()?;
+    state.ui.render()?;
 
-    // show the ident (if there is one)
-    if let Some(ident) = ui.ts.tile_name(tile) {
-        let mut x = 1;
-        for ch in ident.to_string().chars() {
-            ui.blit_tile(&ui.ts.tile(&ch.to_string()).unwrap(), x, 4)?;
-            x += 1;
-        }
-    }
-
-    ui.render()
+    Ok(())
 }

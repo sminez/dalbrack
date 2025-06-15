@@ -1,19 +1,12 @@
-use crate::{
-    data_files::parse_color_palette,
-    grid::{Grid, Tile},
-    tileset::TileSet,
-};
 use anyhow::anyhow;
 use sdl2::{
     EventPump, Sdl, VideoSubsystem,
     event::{Event, WindowEvent},
     pixels::{Color, PixelFormatEnum},
-    rect::Rect,
     render::{Canvas, TextureCreator},
     surface::Surface,
     video::{Window, WindowContext},
 };
-use std::collections::HashMap;
 
 pub struct Sdl2UI<'a> {
     w: u32,
@@ -22,17 +15,15 @@ pub struct Sdl2UI<'a> {
     _ctx: Sdl,
     _video_ss: VideoSubsystem,
     canvas: Canvas<Window>,
-    buf: Surface<'a>,
+    pub buf: Surface<'a>,
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
     bg: Color,
     debug: bool,
-    pub ts: TileSet<'a>,
-    pub palette: HashMap<String, Color>,
 }
 
 impl<'a> Sdl2UI<'a> {
-    pub fn init(w: u32, h: u32, dxy: u32, window_title: &str) -> anyhow::Result<Self> {
+    pub fn init(w: u32, h: u32, dxy: u32, window_title: &str, bg: Color) -> anyhow::Result<Self> {
         let ctx = sdl2::init().map_err(|e| anyhow!("{e}"))?;
         let video_ss = ctx.video().map_err(|e| anyhow!("{e}"))?;
 
@@ -46,10 +37,6 @@ impl<'a> Sdl2UI<'a> {
         let evts = ctx.event_pump().map_err(|e| anyhow!("{e}"))?;
 
         let buf = Surface::new(w, h, PixelFormatEnum::ARGB8888).map_err(|e| anyhow!("{e}"))?;
-
-        let ts = TileSet::default();
-        let palette = parse_color_palette()?;
-        let bg = *palette.get("black").unwrap();
 
         canvas.set_draw_color(bg);
         canvas.clear();
@@ -67,8 +54,6 @@ impl<'a> Sdl2UI<'a> {
             evts,
             bg,
             debug: false,
-            ts,
-            palette,
         })
     }
 
@@ -82,8 +67,8 @@ impl<'a> Sdl2UI<'a> {
         if self.debug { Color::MAGENTA } else { self.bg }
     }
 
-    pub fn set_bg(&mut self, color_name: &str) {
-        self.bg = *self.palette.get(color_name).unwrap();
+    pub fn set_bg(&mut self, color: Color) {
+        self.bg = color;
     }
 
     /// Poll for currently pending events.
@@ -132,30 +117,6 @@ impl<'a> Sdl2UI<'a> {
         self.canvas.set_draw_color(bg);
         self.canvas.clear();
         self.buf.fill_rect(None, bg).unwrap();
-    }
-
-    fn rect_for_coords(&self, x: u32, y: u32) -> Rect {
-        Rect::new(
-            (x * self.dxy) as i32,
-            (y * self.dxy) as i32,
-            self.dxy,
-            self.dxy,
-        )
-    }
-
-    pub fn blit_tile(&mut self, tile: &Tile, x: u32, y: u32) -> anyhow::Result<()> {
-        let r = self.rect_for_coords(x, y);
-        self.ts.blit_tile(tile, r, &mut self.buf)
-    }
-
-    pub fn blit_grid(&mut self, grid: &Grid, x: u32, y: u32) -> anyhow::Result<()> {
-        self.ts.blit_grid(
-            grid,
-            (x * self.dxy) as i32,
-            (y * self.dxy) as i32,
-            self.dxy,
-            &mut self.buf,
-        )
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {

@@ -1,9 +1,21 @@
+use crate::Pos;
+use hecs::World;
 use sdl2::pixels::Color;
 
 #[derive(Default, Debug)]
 pub struct Grid {
     pub tiles: Vec<Tile>,
     pub w: usize,
+}
+
+impl Grid {
+    pub fn spawn_all_at(&self, dx: i32, dy: i32, world: &mut World) {
+        for (col, line) in self.tiles.chunks(self.w).enumerate() {
+            for (row, tile) in line.iter().enumerate() {
+                world.spawn((Pos::new(dx + row as i32, dy + col as i32), *tile));
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

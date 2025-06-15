@@ -1,16 +1,24 @@
-use risky_endevours::{tileset::TileSet, ui::Sdl2UI};
+use risky_endevours::{Pos, state::State, tileset::TileSet};
 use sdl2::{event::Event, keyboard::Keycode};
 
 const X: i32 = 40;
 const DIM: u32 = X as u32 * 16;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut ui = Sdl2UI::init(DIM, DIM, X as u32, "Risky Endevours")?;
+    let mut state = State::init(DIM, DIM, X as u32, "Risky Endevours")?;
 
-    render(&mut ui)?;
+    for y in 0..16 {
+        for x in 0..16 {
+            let tile = state.ts.ibm437_tile(y, x);
+            state.world.spawn((Pos::new(x as i32, y as i32), tile));
+        }
+    }
+
+    state.blit_all()?;
+    state.ui.render()?;
 
     loop {
-        match ui.wait_event() {
+        match state.ui.wait_event() {
             Event::Quit { .. } => return Ok(()),
 
             Event::KeyDown {
@@ -18,15 +26,15 @@ pub fn main() -> anyhow::Result<()> {
                 repeat: false,
                 ..
             } => match k {
-                Keycode::Num1 => ui.ts = TileSet::df_classic()?,
-                Keycode::Num2 => ui.ts = TileSet::df_buddy()?,
-                Keycode::Num3 => ui.ts = TileSet::df_sb()?,
-                Keycode::Num4 => ui.ts = TileSet::df_nordic()?,
-                Keycode::Num5 => ui.ts = TileSet::df_rde()?,
-                Keycode::Num6 => ui.ts = TileSet::df_yayo()?,
-                Keycode::Num7 => ui.ts = TileSet::df_kruggsmash()?,
+                Keycode::Num1 => state.ts = TileSet::df_classic()?,
+                Keycode::Num2 => state.ts = TileSet::df_buddy()?,
+                Keycode::Num3 => state.ts = TileSet::df_sb()?,
+                Keycode::Num4 => state.ts = TileSet::df_nordic()?,
+                Keycode::Num5 => state.ts = TileSet::df_rde()?,
+                Keycode::Num6 => state.ts = TileSet::df_yayo()?,
+                Keycode::Num7 => state.ts = TileSet::df_kruggsmash()?,
 
-                Keycode::Space => ui.toggle_debug_bg(),
+                Keycode::Space => state.ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
 
                 _ => continue,
@@ -35,19 +43,8 @@ pub fn main() -> anyhow::Result<()> {
             _ => continue,
         }
 
-        render(&mut ui)?;
+        state.ui.clear();
+        state.blit_all()?;
+        state.ui.render()?;
     }
-}
-
-fn render(ui: &mut Sdl2UI<'_>) -> anyhow::Result<()> {
-    ui.clear();
-
-    for y in 0..16 {
-        for x in 0..16 {
-            let tile = ui.ts.ibm437_tile(y, x);
-            ui.blit_tile(&tile, x as u32, y as u32)?;
-        }
-    }
-
-    ui.render()
 }
