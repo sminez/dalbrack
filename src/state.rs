@@ -58,9 +58,13 @@ impl<'a> State<'a> {
     }
 
     fn blit_map(&mut self) -> anyhow::Result<()> {
+        let map = match self.world.query_one_mut::<&Map>(self.e_map) {
+            Ok(map) => map,
+            Err(_) => return Ok(()), // no map to render
+        };
+
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
-        let map = self.world.query_one_mut::<&Map>(self.e_map)?;
         r.x = 0;
         r.y = 0;
 

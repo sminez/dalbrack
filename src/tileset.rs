@@ -25,7 +25,7 @@ pub struct TileSet<'a> {
 
 impl<'a> Default for TileSet<'a> {
     fn default() -> Self {
-        Self::df_classic().unwrap()
+        Self::df_rde().unwrap()
     }
 }
 
