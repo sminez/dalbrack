@@ -47,6 +47,13 @@ impl Map {
         y * self.w + x
     }
 
+    pub fn tile_at(&self, pos: Pos) -> &MapTile {
+        let idx = self.idx(pos.x as usize, pos.y as usize);
+        let tile_idx = self.tiles[idx];
+
+        &self.tile_defs[tile_idx]
+    }
+
     pub fn carve_room(&mut self, r: Rect) {
         for y in r.y..r.y + r.h {
             for x in r.x..r.x + r.w {

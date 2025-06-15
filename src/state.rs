@@ -6,12 +6,13 @@ use crate::{
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
 };
-use hecs::World;
+use hecs::{Entity, World};
 use sdl2::{pixels::Color, rect::Rect};
 use std::collections::HashMap;
 
 pub struct State<'a> {
     pub world: World,
+    pub e_map: Entity,
     pub ui: Sdl2UI<'a>,
     pub ts: TileSet<'a>,
     pub palette: HashMap<String, Color>,
@@ -23,9 +24,12 @@ impl<'a> State<'a> {
         let palette = parse_color_palette()?;
         let bg = *palette.get("black").unwrap();
         let ui = Sdl2UI::init(w, h, dxy, window_title, bg)?;
+        let mut world = World::new();
+        let e_map = world.spawn(());
 
         Ok(State {
-            world: World::new(),
+            world,
+            e_map,
             ui,
             ts,
             palette,
@@ -39,6 +43,12 @@ impl<'a> State<'a> {
         tile
     }
 
+    pub fn set_map(&mut self, map: Map) {
+        self.world
+            .insert_one(self.e_map, map)
+            .expect("e_map to be valid");
+    }
+
     pub fn blit_all(&mut self) -> anyhow::Result<()> {
         self.blit_map()?;
         self.blit_tiles()?;
@@ -50,22 +60,20 @@ impl<'a> State<'a> {
     fn blit_map(&mut self) -> anyhow::Result<()> {
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
+        let map = self.world.query_one_mut::<&Map>(self.e_map)?;
+        r.x = 0;
+        r.y = 0;
 
-        for (_entity, map) in self.world.query_mut::<&Map>() {
-            r.x = 0;
-            r.y = 0;
-
-            for (y, line) in map.tiles.chunks(map.w).enumerate() {
-                for (x, tile_idx) in line.iter().enumerate() {
-                    if !map.explored.contains(&(y * map.w + x)) {
-                        continue;
-                    }
-
-                    r.x = x as i32 * dxy;
-                    r.y = y as i32 * dxy;
-                    let tile = &map.tile_defs[*tile_idx];
-                    self.ts.blit_tile(&tile.t, r, &mut self.ui.buf)?;
+        for (y, line) in map.tiles.chunks(map.w).enumerate() {
+            for (x, tile_idx) in line.iter().enumerate() {
+                if !map.explored.contains(&(y * map.w + x)) {
+                    continue;
                 }
+
+                r.x = x as i32 * dxy;
+                r.y = y as i32 * dxy;
+                let tile = &map.tile_defs[*tile_idx];
+                self.ts.blit_tile(&tile.t, r, &mut self.ui.buf)?;
             }
         }
 

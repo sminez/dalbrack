@@ -1,3 +1,4 @@
+//! About as simple as you can get for ensuring a connected map
 use crate::{
     Pos,
     map::{Map, MapBuilder},
@@ -24,18 +25,24 @@ impl MapBuilder for SimpleDungeon {
             let h = rng.random_range(min_size..max_size);
             let x = rng.random_range(1..map_w - w - 1) - 1;
             let y = rng.random_range(1..map_h - h - 1) - 1;
-            let new_room = Rect::new(x as i32, y as i32, w as u32, h as u32);
+            let r_new = Rect::new(x as i32, y as i32, w as u32, h as u32);
 
-            for other_room in rooms.iter() {
-                if new_room.intersection(*other_room).is_some() {
-                    continue;
-                }
+            // Ensure that we also don't have rooms that are adjacent without a dividing wall
+            let test = Rect::new(
+                r_new.x - 1,
+                r_new.y - 1,
+                r_new.w as u32 + 2,
+                r_new.h as u32 + 2,
+            );
+
+            if rooms.iter().any(|r| r.intersection(test).is_some()) {
+                continue;
             }
 
-            map.carve_room(new_room);
+            map.carve_room(r_new);
 
             if !rooms.is_empty() {
-                let new = new_room.center();
+                let new = r_new.center();
                 let prev = rooms[rooms.len() - 1].center();
                 if rng.random_bool(0.5) {
                     map.carve_h_tunnel(prev.x, new.x, prev.y);
@@ -46,7 +53,7 @@ impl MapBuilder for SimpleDungeon {
                 }
             }
 
-            rooms.push(new_room);
+            rooms.push(r_new);
         }
 
         let p = rooms[0].center();
