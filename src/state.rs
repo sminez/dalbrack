@@ -67,12 +67,12 @@ impl<'a> State<'a> {
             Err(_) => None,
         };
 
-        let map = match self.world.query_one_mut::<&Map>(self.e_map) {
+        let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
             Ok(map) => map,
             Err(_) => return Ok(()), // no map to render
         };
 
-        let player_fov_range = 10;
+        let player_fov_range = 5;
         let fov = player_pos.map(|p| map.fov(p, player_fov_range));
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
@@ -82,21 +82,21 @@ impl<'a> State<'a> {
 
         for (y, line) in map.tiles.chunks(map.w).enumerate() {
             for (x, tile_idx) in line.iter().enumerate() {
-                if !map.explored.contains(&(y * map.w + x)) {
-                    continue;
-                }
-
                 r.x = x as i32 * dxy;
                 r.y = y as i32 * dxy;
                 let mut tile = map.tile_defs[*tile_idx];
 
                 if let Some(fov) = fov.as_ref() {
-                    if !fov.contains(&Pos::new(x as i32, y as i32)) {
+                    if fov.contains(&Pos::new(x as i32, y as i32)) {
+                        map.explored.insert(map.idx(x, y));
+                    } else {
                         tile.t.color = *self.palette.get("grey15").unwrap();
                     }
                 }
 
-                self.ts.blit_tile(&tile.t, r, &mut self.ui.buf)?;
+                if map.explored.contains(&map.idx(x, y)) {
+                    self.ts.blit_tile(&tile.t, r, &mut self.ui.buf)?;
+                }
             }
         }
 

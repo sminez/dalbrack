@@ -23,7 +23,7 @@ pub trait MapBuilder {
 #[derive(Debug, Clone)]
 pub struct Map {
     pub tiles: Vec<usize>,
-    pub explored: Vec<usize>,
+    pub explored: HashSet<usize>,
     pub tile_defs: Vec<MapTile>,
     pub w: usize,
     pub h: usize,
@@ -33,7 +33,7 @@ impl Map {
     pub fn new(w: usize, h: usize, state: &State<'_>) -> Self {
         Self {
             tiles: vec![WALL; w * h],
-            explored: (0..w * h).collect(),
+            explored: HashSet::new(),
             tile_defs: vec![
                 MapTile::wall(&state.ts, &state.palette),
                 MapTile::floor(&state.ts, &state.palette),
@@ -44,8 +44,12 @@ impl Map {
         }
     }
 
+    pub fn explore_all(&mut self) {
+        self.explored = (0..self.tiles.len()).collect();
+    }
+
     #[inline]
-    fn idx(&self, x: usize, y: usize) -> usize {
+    pub fn idx(&self, x: usize, y: usize) -> usize {
         y * self.w + x
     }
 

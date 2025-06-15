@@ -39,10 +39,10 @@ fn cast_light(
     let yy = MULTIPLIERS[3][octant];
     let r2 = (range * range) as i32;
     let mut new_start = start;
+    let mut prev_blocked = false;
 
-    for i in row..(range + 1) as i32 {
+    for i in row..=range as i32 {
         let (mut dx, dy) = (-i - 1, -i);
-        let mut blocked = false;
 
         while dx < 0 {
             dx += 1;
@@ -71,25 +71,25 @@ fn cast_light(
                 fov.insert(pos);
             }
 
-            let blocks_sight = map.tile_defs[map.tiles[idx]].block_sight;
-            if blocked {
-                if blocks_sight {
+            let cur_blocked = map.tile_defs[map.tiles[idx]].block_sight;
+            if prev_blocked {
+                if cur_blocked {
                     new_start = r_slope;
-                    continue;
                 } else {
-                    blocked = false;
+                    prev_blocked = false;
                     start = new_start;
                 }
-            } else if blocks_sight && i < range as i32 {
-                blocked = true;
+            } else if cur_blocked && i < range as i32 {
                 if start >= end {
                     cast_light(from, i + 1, start, l_slope, range, octant, fov, map);
                 }
+                prev_blocked = true;
                 new_start = r_slope;
             }
         }
+
         // row is scanned: check next row until the last cell is blocked
-        if blocked {
+        if prev_blocked {
             break;
         }
     }
