@@ -42,26 +42,23 @@ fn cast_light(
     let mut prev_blocked = false;
 
     for i in row..=range as i32 {
-        let (mut dx, dy) = (-i - 1, -i);
-
-        while dx < 0 {
-            dx += 1;
-
-            // l_slope / r_slope are the left / right extremities of the current cell
-            let l_slope = (dx as f32 - 0.5) / (dy as f32 + 0.5);
-            let r_slope = (dx as f32 + 0.5) / (dy as f32 - 0.5);
-
-            if start < r_slope {
-                continue;
-            } else if end > l_slope {
-                break;
-            }
-
+        let dx = i;
+        for dy in (0..=i).rev() {
             // map dx, dy coords to map coords
             let x = from.x + dx * xx + dy * xy;
             let y = from.y + dx * yx + dy * yy;
             if x < 0 || y < 0 || x >= map.w as i32 || y >= map.h as i32 {
                 continue;
+            }
+
+            // l_slope / r_slope are the left / right extremities of the current cell
+            let l_slope = (dy as f32 + 0.5) / (dx as f32 - 0.5);
+            let r_slope = (dy as f32 - 0.5) / (dx as f32 + 0.5);
+
+            if r_slope >= start {
+                continue;
+            } else if l_slope <= end {
+                break;
             }
 
             let pos = Pos::new(x, y);
