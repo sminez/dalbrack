@@ -1,5 +1,10 @@
-use dalbrack::{Pos, map::Map, state::State, tileset::TileSet};
-use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, rect::Rect};
+use dalbrack::{
+    Pos,
+    map::{MapBuilder, builders::SimpleDungeon},
+    state::State,
+    tileset::TileSet,
+};
+use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton};
 use std::time::Instant;
 
 const DXY: u32 = 16;
@@ -9,10 +14,7 @@ const H: i32 = 50;
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, "Risky Endevours")?;
 
-    let mut map = Map::new(W as usize, H as usize, &state);
-    map.carve_room(Rect::new(20, 15, 10, 15));
-    map.carve_room(Rect::new(35, 15, 10, 15));
-
+    let (pos, map) = SimpleDungeon.build(W as usize, H as usize, &state);
     state.world.spawn((map,));
 
     state.ui.clear();
