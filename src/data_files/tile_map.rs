@@ -9,7 +9,7 @@ use std::{
 };
 
 /// Parse a tileset from a 16x16 sprite-sheet of IMB code page 437 glyphs.
-pub fn parse_ibm437_tileset<'a>(
+pub fn parse_cp437_tileset<'a>(
     path: impl AsRef<Path>,
     d: u16,
     bg: Option<Color>,

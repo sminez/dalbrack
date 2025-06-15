@@ -6,7 +6,7 @@ use anyhow::{Context, anyhow, bail};
 use sdl2::pixels::Color;
 use std::{collections::HashMap, fs, path::Path};
 
-pub fn parse_ibm437_prefab(
+pub fn parse_cp437_prefab(
     path: impl AsRef<Path>,
     ts: &TileSet<'_>,
     palette: &HashMap<String, Color>,

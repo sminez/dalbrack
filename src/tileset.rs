@@ -1,6 +1,6 @@
 use crate::{
     Pos,
-    data_files::{parse_ibm437_tileset, parse_tile_map},
+    data_files::{parse_cp437_tileset, parse_tile_map},
     grid::{Grid, Tile},
 };
 use anyhow::anyhow;
@@ -43,7 +43,7 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn df_classic() -> anyhow::Result<Self> {
-        parse_ibm437_tileset(
+        parse_cp437_tileset(
             "data/tilesets/df/Curses_classic_square_12x12.png",
             12,
             Some(Color::MAGENTA),
@@ -51,15 +51,15 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn df_buddy() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("data/tilesets/df/Buddy.png", 10, None)
+        parse_cp437_tileset("data/tilesets/df/Buddy.png", 10, None)
     }
 
     pub fn df_sb() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("data/tilesets/df/16x16_sb_ascii.png", 16, None)
+        parse_cp437_tileset("data/tilesets/df/16x16_sb_ascii.png", 16, None)
     }
 
     pub fn df_nordic() -> anyhow::Result<Self> {
-        parse_ibm437_tileset(
+        parse_cp437_tileset(
             "data/tilesets/df/DF-Nordic_v1.png",
             16,
             Some(Color::MAGENTA),
@@ -67,11 +67,11 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn df_rde() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("data/tilesets/df/RDE_8x8.png", 8, Some(Color::MAGENTA))
+        parse_cp437_tileset("data/tilesets/df/RDE_8x8.png", 8, Some(Color::MAGENTA))
     }
 
     pub fn df_yayo() -> anyhow::Result<Self> {
-        parse_ibm437_tileset(
+        parse_cp437_tileset(
             "data/tilesets/df/Yayo_tunur_1040x325.png",
             13,
             Some(Color::MAGENTA),
@@ -79,7 +79,7 @@ impl<'a> TileSet<'a> {
     }
 
     pub fn df_kruggsmash() -> anyhow::Result<Self> {
-        parse_ibm437_tileset("data/tilesets/df/kruggsmash.png", 32, Some(Color::MAGENTA))
+        parse_cp437_tileset("data/tilesets/df/kruggsmash.png", 32, Some(Color::MAGENTA))
     }
 
     pub(crate) fn new(
@@ -132,7 +132,7 @@ impl<'a> TileSet<'a> {
         p
     }
 
-    pub fn ibm437_tile(&self, row: u16, col: u16) -> Tile {
+    pub fn cp437_tile(&self, row: u16, col: u16) -> Tile {
         Tile::new((row * 16 + col) as usize)
     }
 

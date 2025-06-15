@@ -51,7 +51,7 @@ fn update(
     state: &mut State<'_>,
 ) -> anyhow::Result<()> {
     let coords = format!("({row},{col})");
-    let tile = state.ts.ibm437_tile(row, col);
+    let tile = state.ts.cp437_tile(row, col);
     let ident = match state.ts.tile_name(tile) {
         Some(ident) => ident.to_string(),
         None => String::new(),

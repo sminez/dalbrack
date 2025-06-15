@@ -9,7 +9,7 @@ pub fn main() -> anyhow::Result<()> {
 
     for y in 0..16 {
         for x in 0..16 {
-            let tile = state.ts.ibm437_tile(y, x);
+            let tile = state.ts.cp437_tile(y, x);
             state.world.spawn((Pos::new(x as i32, y as i32), tile));
         }
     }
