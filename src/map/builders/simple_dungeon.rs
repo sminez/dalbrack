@@ -1,7 +1,10 @@
 //! About as simple as you can get for ensuring a connected map
 use crate::{
     Pos,
-    map::{Map, MapBuilder},
+    map::{
+        Map,
+        builders::{BuildMap, Snapshots},
+    },
     state::State,
 };
 use rand::Rng;
@@ -9,8 +12,14 @@ use sdl2::rect::Rect;
 
 pub struct SimpleDungeon;
 
-impl MapBuilder for SimpleDungeon {
-    fn build(&mut self, map_w: usize, map_h: usize, state: &State<'_>) -> (Pos, Map) {
+impl BuildMap for SimpleDungeon {
+    fn build(
+        &mut self,
+        map_w: usize,
+        map_h: usize,
+        state: &State<'_>,
+        snapshots: &mut Snapshots,
+    ) -> (Pos, Map) {
         let mut map = Map::new(map_w, map_h, state);
         let mut rooms: Vec<Rect> = Vec::new();
 
@@ -40,6 +49,7 @@ impl MapBuilder for SimpleDungeon {
             }
 
             map.carve_rect(r_new);
+            snapshots.push(&map);
 
             if !rooms.is_empty() {
                 let new = r_new.center();
@@ -51,6 +61,7 @@ impl MapBuilder for SimpleDungeon {
                     map.carve_v_tunnel(prev.y, new.y, prev.x);
                     map.carve_h_tunnel(prev.x, new.x, new.y);
                 }
+                snapshots.push(&map);
             }
 
             rooms.push(r_new);

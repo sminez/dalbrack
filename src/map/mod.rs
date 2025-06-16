@@ -20,11 +20,6 @@ const WALL: usize = 0;
 const FLOOR: usize = 1;
 // const DOOR: usize = 2;
 
-pub trait MapBuilder {
-    /// Return starting position and the map
-    fn build(&mut self, map_w: usize, map_h: usize, state: &State<'_>) -> (Pos, Map);
-}
-
 #[derive(Debug, Clone)]
 pub struct Map {
     pub tiles: Vec<usize>,

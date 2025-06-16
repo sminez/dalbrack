@@ -1,6 +1,6 @@
 use dalbrack::{
     Pos,
-    map::{MapBuilder, builders::SimpleDungeon},
+    map::builders::{BuildMap, SimpleDungeon},
     player::{FovRange, Player},
     state::State,
     tileset::TileSet,
@@ -15,7 +15,7 @@ const H: i32 = 40;
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, "Risky Endevours")?;
 
-    let (pos, map) = SimpleDungeon.build(W as usize, H as usize, &state);
+    let (pos, map) = SimpleDungeon.new_map(W as usize, H as usize, &state);
     state.set_map(map);
 
     let player_sprite = state.tile_with_color("@", "white");
@@ -48,7 +48,7 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::Down => Player::try_move(0, 1, &mut state),
 
                 Keycode::R => {
-                    let (pos, map) = SimpleDungeon.build(W as usize, H as usize, &state);
+                    let (pos, map) = SimpleDungeon.new_map(W as usize, H as usize, &state);
                     state.set_map(map);
                     Player::set_pos(pos, &mut state);
                 }
