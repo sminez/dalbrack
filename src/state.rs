@@ -2,8 +2,8 @@
 use crate::{
     Pos,
     data_files::parse_color_palette,
-    map::Map,
-    player::Player,
+    map::{Map, fov::Fov},
+    player::FovRange,
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
 };
@@ -40,6 +40,16 @@ impl<'a> State<'a> {
         })
     }
 
+    pub fn tick(&mut self) -> anyhow::Result<()> {
+        self.update_fov()?;
+
+        self.ui.clear();
+        self.blit_all()?;
+        self.ui.render()?;
+
+        Ok(())
+    }
+
     pub fn tile_with_color(&self, ident: &str, color: &str) -> Tile {
         let mut tile = self.ts.tile(ident).unwrap();
         tile.color = *self.palette.get(color).unwrap();
@@ -53,6 +63,26 @@ impl<'a> State<'a> {
             .expect("e_map to be valid");
     }
 
+    /// This will no-op rather than error if we are missing the correct player components
+    /// or if the map is missing.
+    pub fn update_fov(&mut self) -> anyhow::Result<()> {
+        let (r, pos) = match self.world.query_one_mut::<(&FovRange, &Pos)>(self.e_player) {
+            Ok((fov, pos)) => (fov.0, *pos),
+            Err(_) => return Ok(()),
+        };
+
+        let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
+            Ok(map) => map,
+            Err(_) => return Ok(()),
+        };
+
+        // TODO: avoid recalculating if not needed
+        let fov = map.fov(pos, r);
+        self.world.insert_one(self.e_map, fov)?;
+
+        Ok(())
+    }
+
     pub fn blit_all(&mut self) -> anyhow::Result<()> {
         self.blit_map()?;
         self.blit_tiles()?;
@@ -62,18 +92,16 @@ impl<'a> State<'a> {
     }
 
     fn blit_map(&mut self) -> anyhow::Result<()> {
-        let player_pos = match self.world.query_one_mut::<(&Player, &Pos)>(self.e_player) {
-            Ok((_, pos)) => Some(*pos),
-            Err(_) => None,
+        let (map, fov) = if self.world.satisfies::<(&Map, &Fov)>(self.e_map)? {
+            self.world
+                .query_one_mut::<(&mut Map, &Fov)>(self.e_map)
+                .map(|(map, fov)| (map, Some(&fov.0)))?
+        } else {
+            match self.world.query_one_mut::<&mut Map>(self.e_map) {
+                Ok(map) => (map, None),
+                Err(_) => return Ok(()), // no map to render
+            }
         };
-
-        let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
-            Ok(map) => map,
-            Err(_) => return Ok(()), // no map to render
-        };
-
-        let player_fov_range = 5;
-        let fov = player_pos.map(|p| map.fov(p, player_fov_range));
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
@@ -90,7 +118,7 @@ impl<'a> State<'a> {
                     if fov.contains(&Pos::new(x as i32, y as i32)) {
                         map.explored.insert(map.idx(x, y));
                     } else {
-                        tile.t.color = *self.palette.get("grey15").unwrap();
+                        tile.t.color = *self.palette.get("grey16").unwrap();
                     }
                 }
 

@@ -1,4 +1,11 @@
-use crate::{Pos, state::State};
+use crate::{
+    Pos,
+    map::{
+        fov::{Fov, determine_fov},
+        map_tile::MapTile,
+    },
+    state::State,
+};
 use sdl2::rect::Rect;
 use std::{
     cmp::{max, min},
@@ -6,10 +13,8 @@ use std::{
 };
 
 pub mod builders;
-mod fov;
+pub mod fov;
 pub mod map_tile;
-
-pub use map_tile::MapTile;
 
 const WALL: usize = 0;
 const FLOOR: usize = 1;
@@ -65,10 +70,8 @@ impl Map {
     }
 
     /// Compute the FOV from a given point in terms of tile indices
-    ///
-    /// See https://www.roguebasin.com/index.php/FOV_using_recursive_shadowcasting
-    pub fn fov(&self, from: Pos, range: u32) -> HashSet<Pos> {
-        fov::determine_fov(self, from, range)
+    pub fn fov(&self, from: Pos, range: u32) -> Fov {
+        determine_fov(self, from, range)
     }
 
     pub fn carve_rect(&mut self, r: Rect) {

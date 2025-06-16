@@ -11,7 +11,9 @@ const MULTIPLIERS: [[i32; 8]; 4] = [
     [1, 0, 0, 1, -1, 0, 0, -1],
 ];
 
-pub(super) fn determine_fov(map: &Map, from: Pos, range: u32) -> HashSet<Pos> {
+pub struct Fov(pub HashSet<Pos>);
+
+pub(super) fn determine_fov(map: &Map, from: Pos, range: u32) -> Fov {
     let mut fov = HashSet::with_capacity(4 * (range * range) as usize);
     fov.insert(from);
 
@@ -19,7 +21,7 @@ pub(super) fn determine_fov(map: &Map, from: Pos, range: u32) -> HashSet<Pos> {
         cast_light(from, 1, 1.0, 0.0, range, octant, &mut fov, map);
     }
 
-    fov
+    Fov(fov)
 }
 
 #[allow(clippy::too_many_arguments)]

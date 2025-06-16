@@ -36,7 +36,7 @@ impl MapTile {
     }
 
     pub fn floor(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
-        Self::new("shade-light", "grey12", Some(1), false, false, ts, palette)
+        Self::new("dot", "grey12", Some(1), false, false, ts, palette)
     }
 
     //     pub fn door(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {

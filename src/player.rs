@@ -22,3 +22,6 @@ impl Player {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct FovRange(pub u32);

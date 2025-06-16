@@ -1,14 +1,14 @@
 use dalbrack::{
     Pos,
     map::{MapBuilder, builders::SimpleDungeon},
-    player::Player,
+    player::{FovRange, Player},
     state::State,
     tileset::TileSet,
 };
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton};
 use std::time::Instant;
 
-const DXY: u32 = 36;
+const DXY: u32 = 30;
 const W: i32 = 60;
 const H: i32 = 40;
 
@@ -18,13 +18,10 @@ pub fn main() -> anyhow::Result<()> {
     let (pos, map) = SimpleDungeon.build(W as usize, H as usize, &state);
     state.set_map(map);
 
-    let player_sprite = state.tile_with_color(":D", "bright_purple");
-    state.e_player = state.world.spawn((Player, pos, player_sprite));
+    let player_sprite = state.tile_with_color("@", "white");
+    state.e_player = state.world.spawn((Player, FovRange(5), pos, player_sprite));
 
-    state.ui.clear();
-    state.blit_all()?;
-    state.ui.render()?;
-
+    state.tick()?;
     let mut t1 = Instant::now();
 
     loop {
@@ -84,9 +81,7 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         if need_render {
-            state.ui.clear();
-            state.blit_all()?;
-            state.ui.render()?;
+            state.tick()?;
         }
     }
 }
