@@ -59,7 +59,7 @@ fn cast_light(
 
             if r_slope >= start {
                 continue;
-            } else if l_slope <= end {
+            } else if l_slope < end {
                 break;
             }
 
