@@ -8,7 +8,7 @@ use dalbrack::{
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton};
 use std::time::Instant;
 
-const DXY: u32 = 30;
+const DXY: u32 = 20;
 const W: i32 = 60;
 const H: i32 = 40;
 
@@ -19,7 +19,15 @@ pub fn main() -> anyhow::Result<()> {
     state.set_map(map);
 
     let player_sprite = state.tile_with_color("@", "white");
-    state.e_player = state.world.spawn((Player, FovRange(5), pos, player_sprite));
+    state.e_player = state.world.spawn((
+        Player,
+        FovRange {
+            light_range: 5,
+            explore_range: 8,
+        },
+        pos,
+        player_sprite,
+    ));
 
     state.tick()?;
     let mut t1 = Instant::now();

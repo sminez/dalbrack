@@ -24,4 +24,7 @@ impl Player {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct FovRange(pub u32);
+pub struct FovRange {
+    pub light_range: u32,
+    pub explore_range: u32,
+}

@@ -66,18 +66,18 @@ impl<'a> State<'a> {
     /// This will no-op rather than error if we are missing the correct player components
     /// or if the map is missing.
     pub fn update_fov(&mut self) -> anyhow::Result<()> {
-        let (r, pos) = match self.world.query_one_mut::<(&FovRange, &Pos)>(self.e_player) {
-            Ok((fov, pos)) => (fov.0, *pos),
-            Err(_) => return Ok(()),
-        };
+        let (pos, r_light, r_exp) =
+            match self.world.query_one_mut::<(&FovRange, &Pos)>(self.e_player) {
+                Ok((fov, pos)) => (*pos, fov.light_range, fov.explore_range),
+                Err(_) => return Ok(()),
+            };
 
         let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
             Ok(map) => map,
             Err(_) => return Ok(()),
         };
 
-        // TODO: avoid recalculating if not needed
-        let fov = map.fov(pos, r);
+        let fov = map.fov(pos, r_light, r_exp);
         self.world.insert_one(self.e_map, fov)?;
 
         Ok(())
@@ -95,7 +95,7 @@ impl<'a> State<'a> {
         let (map, fov) = if self.world.satisfies::<(&Map, &Fov)>(self.e_map)? {
             self.world
                 .query_one_mut::<(&mut Map, &Fov)>(self.e_map)
-                .map(|(map, fov)| (map, Some(&fov.0)))?
+                .map(|(map, fov)| (map, Some(fov)))?
         } else {
             match self.world.query_one_mut::<&mut Map>(self.e_map) {
                 Ok(map) => (map, None),
@@ -115,10 +115,18 @@ impl<'a> State<'a> {
                 let mut tile = map.tile_defs[*tile_idx];
 
                 if let Some(fov) = fov.as_ref() {
-                    if fov.contains(&Pos::new(x as i32, y as i32)) {
+                    let p = Pos::new(x as i32, y as i32);
+                    if fov.points.contains(&p) {
                         map.explored.insert(map.idx(x, y));
-                    } else {
-                        tile.t.color = *self.palette.get("grey16").unwrap();
+                    }
+
+                    let d = fov.center.dist(p);
+                    if d > fov.light_range {
+                        if d <= fov.full_range {
+                            tile.t.color = *self.palette.get("grey14").unwrap();
+                        } else {
+                            tile.t.color = *self.palette.get("grey16").unwrap();
+                        }
                     }
                 }
 

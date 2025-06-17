@@ -65,8 +65,8 @@ impl Map {
     }
 
     /// Compute the FOV from a given point in terms of tile indices
-    pub fn fov(&self, from: Pos, range: u32) -> Fov {
-        determine_fov(self, from, range)
+    pub fn fov(&self, from: Pos, light_range: u32, explore_range: u32) -> Fov {
+        determine_fov(self, from, light_range, explore_range)
     }
 
     pub fn carve_rect(&mut self, r: Rect) {

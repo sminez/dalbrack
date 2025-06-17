@@ -16,4 +16,10 @@ impl Pos {
     pub const fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
+
+    pub fn dist(&self, other: Pos) -> u32 {
+        (((self.x - other.x).pow(2) + (self.y - other.y).pow(2)) as f32)
+            .sqrt()
+            .ceil() as u32
+    }
 }
