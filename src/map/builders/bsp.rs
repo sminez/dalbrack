@@ -1,0 +1,136 @@
+use crate::{
+    Pos,
+    map::{
+        Map,
+        builders::{BuildMap, Snapshots},
+    },
+    state::State,
+};
+use rand::{Rng, rngs::ThreadRng};
+use sdl2::rect::Rect;
+use std::cmp::{max, min};
+
+use super::random_point;
+
+/// min split position as a %
+const SPLIT_FROM: f32 = 0.35;
+/// max split position as a %
+const SPLIT_TO: f32 = 0.7;
+/// max number of splits
+const MAX_DEPTH: usize = 4;
+/// minimum room ratio
+const MIN_RAT: f32 = 0.45;
+
+pub struct BspDungeon;
+
+impl BuildMap for BspDungeon {
+    fn build(
+        &mut self,
+        map_w: usize,
+        map_h: usize,
+        state: &State<'_>,
+        snapshots: &mut Snapshots,
+    ) -> (Pos, Map) {
+        let mut map = Map::new(map_w, map_h, state);
+        let mut rng = rand::rng();
+
+        let starting_room = split_and_connect(
+            Rect::new(0, 0, map_w as u32, map_h as u32),
+            0,
+            &mut rng,
+            &mut map,
+            snapshots,
+        );
+
+        let p = starting_room.center();
+
+        (Pos::new(p.x, p.y), map)
+    }
+}
+
+fn split_and_connect(
+    r: Rect,
+    depth: usize,
+    rng: &mut ThreadRng,
+    map: &mut Map,
+    snapshots: &mut Snapshots,
+) -> Rect {
+    if depth == MAX_DEPTH {
+        return position_and_carve(r, rng, map, snapshots);
+    }
+
+    let (r1, r2) = split(r, rng);
+    let r2 = split_and_connect(r2, depth + 1, rng, map, snapshots);
+    let r1 = split_and_connect(r1, depth + 1, rng, map, snapshots);
+
+    connect(r1, r2, rng, map, snapshots);
+
+    if rng.random_bool(0.5) { r1 } else { r2 }
+}
+
+fn aspect_ratio(w: i32, h: i32) -> f32 {
+    (min(w, h) as f32) / (max(w, h) as f32)
+}
+
+fn split(r: Rect, rng: &mut ThreadRng) -> (Rect, Rect) {
+    loop {
+        if rng.random_bool(0.5) {
+            let split_point = rng.random_range(SPLIT_FROM..SPLIT_TO);
+            let w = (r.w as f32 * split_point) as u32;
+            if aspect_ratio(w as i32, r.h) < MIN_RAT {
+                continue;
+            }
+
+            return (
+                Rect::new(r.x, r.y, w, r.h as u32),
+                Rect::new(r.x + w as i32, r.y, r.w as u32 - w, r.h as u32),
+            );
+        } else {
+            let split_point = rng.random_range(SPLIT_FROM..SPLIT_TO);
+            let h = (r.h as f32 * split_point) as u32;
+            if aspect_ratio(r.w, h as i32) < MIN_RAT {
+                continue;
+            }
+
+            return (
+                Rect::new(r.x, r.y, r.w as u32, h),
+                Rect::new(r.x, r.y + h as i32, r.w as u32, r.h as u32 - h),
+            );
+        }
+    }
+}
+
+fn position_and_carve(
+    mut r: Rect,
+    rng: &mut ThreadRng,
+    map: &mut Map,
+    snapshots: &mut Snapshots,
+) -> Rect {
+    let p = r.top_left();
+
+    r.x += rng.random_range(1..max(2, r.w / 3));
+    r.y += rng.random_range(1..max(2, r.h / 3));
+    r.w -= r.x - p.x;
+    r.w -= rng.random_range(1..max(2, r.w / 3));
+    r.h -= r.y - p.y;
+    r.h -= rng.random_range(1..max(2, r.h / 3));
+
+    map.carve_rect(r);
+    snapshots.push(map);
+
+    r
+}
+
+fn connect(r1: Rect, r2: Rect, rng: &mut ThreadRng, map: &mut Map, snapshots: &mut Snapshots) {
+    let (x1, y1) = random_point(r1, 1, rng);
+    let (x2, y2) = random_point(r2, 1, rng);
+
+    if rng.random_bool(0.5) {
+        map.carve_h_tunnel(x1, x2, y1);
+        map.carve_v_tunnel(y1, y2, x2);
+    } else {
+        map.carve_v_tunnel(y1, y2, x1);
+        map.carve_h_tunnel(x1, x2, y2);
+    }
+    snapshots.push(map);
+}

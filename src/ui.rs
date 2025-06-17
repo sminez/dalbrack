@@ -71,23 +71,32 @@ impl<'a> Sdl2UI<'a> {
         self.bg = color;
     }
 
+    fn handle_resize(&mut self, event: Event) -> Option<Event> {
+        match event {
+            Event::Window {
+                win_event: WindowEvent::SizeChanged(w, h) | WindowEvent::Resized(w, h),
+                ..
+            } => {
+                self.w = w as u32;
+                self.h = h as u32;
+                self.buf = Surface::new(w as u32, h as u32, PixelFormatEnum::ARGB8888).unwrap();
+                None
+            }
+
+            evt => Some(evt),
+        }
+    }
+
     /// Poll for currently pending events.
     ///
     /// Window resize events are handled internally.
     /// Returns None if no events are pending.
     pub fn poll_event(&mut self) -> Option<Event> {
         loop {
-            match self.evts.poll_event()? {
-                Event::Window {
-                    win_event: WindowEvent::SizeChanged(w, h) | WindowEvent::Resized(w, h),
-                    ..
-                } => {
-                    self.w = w as u32;
-                    self.h = h as u32;
-                    self.buf = Surface::new(w as u32, h as u32, PixelFormatEnum::ARGB8888).unwrap();
-                }
-
-                evt => return Some(evt),
+            let event = self.evts.poll_event()?;
+            let event = self.handle_resize(event);
+            if event.is_some() {
+                return event;
             }
         }
     }
@@ -97,17 +106,20 @@ impl<'a> Sdl2UI<'a> {
     /// Window resize events are handled internally.
     pub fn wait_event(&mut self) -> Event {
         loop {
-            match self.evts.wait_event() {
-                Event::Window {
-                    win_event: WindowEvent::SizeChanged(w, h) | WindowEvent::Resized(w, h),
-                    ..
-                } => {
-                    self.w = w as u32;
-                    self.h = h as u32;
-                    self.buf = Surface::new(w as u32, h as u32, PixelFormatEnum::ARGB8888).unwrap();
-                }
+            let event = self.evts.wait_event();
+            let event = self.handle_resize(event);
+            if let Some(event) = event {
+                return event;
+            }
+        }
+    }
 
-                evt => return evt,
+    pub fn wait_event_timeout(&mut self, ms: u32) -> Option<Event> {
+        loop {
+            let event = self.evts.wait_event_timeout(ms)?;
+            let event = self.handle_resize(event);
+            if event.is_some() {
+                return event;
             }
         }
     }

@@ -1,8 +1,5 @@
 use dalbrack::{
-    map::{
-        Map,
-        builders::{BuildMap, SimpleDungeon},
-    },
+    map::builders::{BspDungeon, BuildMap},
     state::State,
     tileset::TileSet,
 };
@@ -10,23 +7,25 @@ use sdl2::{event::Event, keyboard::Keycode};
 use std::time::Instant;
 
 const DXY: u32 = 30;
-const W: i32 = 60;
-const H: i32 = 40;
-const FRAME_LEN: f64 = 0.5;
+const W: i32 = 50;
+const H: i32 = 30;
+const FRAME_LEN: u128 = 100;
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, "Risky Endevours")?;
-
-    let mut maps = SimpleDungeon.trace_build(W as usize, H as usize, &state);
+    let mut maps = BspDungeon.trace_build(W as usize, H as usize, &state);
     maps.reverse();
+    if let Some(map) = maps.pop() {
+        state.set_map(map);
+    }
 
     let mut t1 = Instant::now();
-    update(&mut maps, &mut state)?;
+    update(&mut state)?;
 
     loop {
         let mut need_render = false;
 
-        if let Some(event) = state.ui.poll_event() {
+        if let Some(event) = state.ui.wait_event_timeout(FRAME_LEN as u32) {
             need_render = true;
             match event {
                 Event::Quit { .. } => return Ok(()),
@@ -45,7 +44,7 @@ pub fn main() -> anyhow::Result<()> {
                     Keycode::Num7 => state.ts = TileSet::df_kruggsmash()?,
 
                     Keycode::R => {
-                        maps = SimpleDungeon.trace_build(W as usize, H as usize, &state);
+                        maps = BspDungeon.trace_build(W as usize, H as usize, &state);
                         maps.reverse();
                     }
 
@@ -62,25 +61,24 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         let t2 = Instant::now();
-        if t2.duration_since(t1).as_secs_f64() >= FRAME_LEN {
+        if t2.duration_since(t1).as_millis() >= FRAME_LEN {
             t1 = t2;
-            need_render = true;
+            if let Some(map) = maps.pop() {
+                state.set_map(map);
+                need_render = true;
+            }
         }
 
         if need_render {
-            update(&mut maps, &mut state)?;
+            update(&mut state)?;
         }
     }
 }
 
-fn update(maps: &mut Vec<Map>, state: &mut State<'_>) -> anyhow::Result<()> {
-    if let Some(map) = maps.pop() {
-        state.set_map(map);
-
-        state.ui.clear();
-        state.blit_all()?;
-        state.ui.render()?;
-    }
+fn update(state: &mut State<'_>) -> anyhow::Result<()> {
+    state.ui.clear();
+    state.blit_all()?;
+    state.ui.render()?;
 
     Ok(())
 }

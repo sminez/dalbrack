@@ -22,12 +22,11 @@ impl BuildMap for SimpleDungeon {
     ) -> (Pos, Map) {
         let mut map = Map::new(map_w, map_h, state);
         let mut rooms: Vec<Rect> = Vec::new();
+        let mut rng = rand::rng();
 
         let max_rooms = 30;
         let min_size = 6;
         let max_size = 10;
-
-        let mut rng = rand::rng();
 
         for _ in 0..max_rooms {
             let w = rng.random_range(min_size..max_size);
