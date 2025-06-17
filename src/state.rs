@@ -66,18 +66,17 @@ impl<'a> State<'a> {
     /// This will no-op rather than error if we are missing the correct player components
     /// or if the map is missing.
     pub fn update_fov(&mut self) -> anyhow::Result<()> {
-        let (pos, r_light, r_exp) =
-            match self.world.query_one_mut::<(&FovRange, &Pos)>(self.e_player) {
-                Ok((fov, pos)) => (*pos, fov.light_range, fov.explore_range),
-                Err(_) => return Ok(()),
-            };
+        let (pos, fov_range) = match self.world.query_one_mut::<(&Pos, &FovRange)>(self.e_player) {
+            Ok((pos, fov)) => (*pos, *fov),
+            Err(_) => return Ok(()),
+        };
 
         let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
             Ok(map) => map,
             Err(_) => return Ok(()),
         };
 
-        let fov = map.fov(pos, r_light, r_exp);
+        let fov = map.fov(pos, fov_range);
         self.world.insert_one(self.e_map, fov)?;
 
         Ok(())

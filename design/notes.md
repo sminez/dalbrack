@@ -1,5 +1,6 @@
 # Note and references
 
+- http://pcg.wikidot.com/
 - https://gameprogrammingpatterns.com/contents.html
 - https://github.com/Rust-SDL2/rust-sdl2
 - https://github.com/tung/ruggrogue

@@ -1,5 +1,6 @@
 //! Systems relating to the player controlled character
 use crate::{Pos, map::Map, state::State};
+use sdl2::pixels::Color;
 
 pub struct Player;
 
@@ -25,6 +26,6 @@ impl Player {
 
 #[derive(Debug, Clone, Copy)]
 pub struct FovRange {
-    pub light_range: u32,
-    pub explore_range: u32,
+    pub range: u32,
+    pub color: Color,
 }

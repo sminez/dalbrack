@@ -5,7 +5,7 @@ use dalbrack::{
     state::State,
     tileset::TileSet,
 };
-use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton};
+use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 use std::time::Instant;
 
 const DXY: u32 = 25;
@@ -22,8 +22,9 @@ pub fn main() -> anyhow::Result<()> {
     state.e_player = state.world.spawn((
         Player,
         FovRange {
-            light_range: 5,
-            explore_range: 8,
+            range: 8,
+            // color: Color::RGB(226, 88, 34),
+            color: Color::RGB(80, 50, 20),
         },
         pos,
         player_sprite,
