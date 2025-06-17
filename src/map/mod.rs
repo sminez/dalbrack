@@ -53,7 +53,8 @@ impl Map {
         y * self.w + x
     }
 
-    fn pos_idx(&self, Pos { x, y }: Pos) -> usize {
+    #[inline]
+    pub fn pos_idx(&self, Pos { x, y }: Pos) -> usize {
         y as usize * self.w + x as usize
     }
 

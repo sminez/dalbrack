@@ -23,7 +23,7 @@ pub fn main() -> anyhow::Result<()> {
         Player,
         FovRange {
             light_range: 5,
-            explore_range: 8,
+            explore_range: 7,
         },
         pos,
         player_sprite,

@@ -5,6 +5,7 @@
 //!   https://www.roguebasin.com/index.php/Line_of_Sight_-_Tobias_Downer
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
 use crate::{Pos, map::Map};
+use sdl2::pixels::Color;
 use std::collections::HashSet;
 
 const MULTIPLIERS: [[i32; 8]; 4] = [
@@ -19,6 +20,24 @@ pub struct Fov {
     pub center: Pos,
     pub light_range: u32,
     pub full_range: u32,
+}
+
+impl Fov {
+    pub fn apply_light_level(&self, p: Pos, color: &mut Color, black: Color) {
+        if !self.points.contains(&p) {
+            *color = black;
+            return;
+        }
+
+        // FIXME: hacky inverse square law
+        let step = 0.3;
+        let d = self.center.dist(p);
+        let delta = ((d * d) as f32 * step).ceil() as u8;
+
+        color.r = color.r.saturating_sub(delta);
+        color.g = color.g.saturating_sub(delta);
+        color.b = color.b.saturating_sub(delta);
+    }
 }
 
 pub(super) fn determine_fov(map: &Map, from: Pos, light_range: u32, range: u32) -> Fov {

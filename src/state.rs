@@ -108,6 +108,9 @@ impl<'a> State<'a> {
         r.x = 0;
         r.y = 0;
 
+        // FIXME: this needs to be stored in the light map once its written
+        let black = *self.palette.get("grey16").unwrap();
+
         for (y, line) in map.tiles.chunks(map.w).enumerate() {
             for (x, tile_idx) in line.iter().enumerate() {
                 r.x = x as i32 * dxy;
@@ -117,17 +120,9 @@ impl<'a> State<'a> {
                 if let Some(fov) = fov.as_ref() {
                     let p = Pos::new(x as i32, y as i32);
                     if fov.points.contains(&p) {
-                        map.explored.insert(map.idx(x, y));
+                        map.explored.insert(map.pos_idx(p));
                     }
-
-                    let d = fov.center.dist(p);
-                    if d > fov.light_range {
-                        if d <= fov.full_range {
-                            tile.t.color = *self.palette.get("grey14").unwrap();
-                        } else {
-                            tile.t.color = *self.palette.get("grey16").unwrap();
-                        }
-                    }
+                    fov.apply_light_level(p, &mut tile.t.color, black);
                 }
 
                 if map.explored.contains(&map.idx(x, y)) {
