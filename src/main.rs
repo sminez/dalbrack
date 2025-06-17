@@ -8,7 +8,7 @@ use dalbrack::{
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton};
 use std::time::Instant;
 
-const DXY: u32 = 20;
+const DXY: u32 = 25;
 const W: i32 = 60;
 const H: i32 = 40;
 
@@ -23,7 +23,7 @@ pub fn main() -> anyhow::Result<()> {
         Player,
         FovRange {
             light_range: 5,
-            explore_range: 7,
+            explore_range: 8,
         },
         pos,
         player_sprite,

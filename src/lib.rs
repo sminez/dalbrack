@@ -18,8 +18,10 @@ impl Pos {
     }
 
     pub fn dist(&self, other: Pos) -> u32 {
-        (((self.x - other.x).pow(2) + (self.y - other.y).pow(2)) as f32)
-            .sqrt()
-            .ceil() as u32
+        self.fdist(other).ceil() as u32
+    }
+
+    pub fn fdist(&self, other: Pos) -> f32 {
+        (((self.x - other.x).pow(2) + (self.y - other.y).pow(2)) as f32).sqrt()
     }
 }

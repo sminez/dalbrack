@@ -30,13 +30,20 @@ impl Fov {
         }
 
         // FIXME: hacky inverse square law
-        let step = 0.3;
-        let d = self.center.dist(p);
-        let delta = ((d * d) as f32 * step).ceil() as u8;
+        // - This can end up going below the BG color so it needs a bit of tuning and possibly
+        //   clamping to behave correctly
+        // let step = 0.12;
+        let step = 0.2;
+        let d = self.center.fdist(p);
+        let mut falloff = (d * step).powi(2);
+        if falloff < 1.0 {
+            // This _kind_ of works but is definitely a hack
+            falloff = falloff.powf(0.11);
+        }
 
-        color.r = color.r.saturating_sub(delta);
-        color.g = color.g.saturating_sub(delta);
-        color.b = color.b.saturating_sub(delta);
+        color.r = (color.r as f32 / falloff) as u8;
+        color.g = (color.g as f32 / falloff) as u8;
+        color.b = (color.b as f32 / falloff) as u8;
     }
 }
 
