@@ -19,8 +19,8 @@ pub fn main() -> anyhow::Result<()> {
 
     let dorf1 = Mob::new(":)", "bright_blue", 3, 5, &state);
     let dorf2 = Mob::new(":)", "bright_yellow", 15, 12, &state);
-    let player_sprite = state.tile_with_color(":D", "bright_purple");
-    let mut ping_sprite = state.tile_with_color("ring-inv", "bright_aqua");
+    let player_sprite = state.tile_with_named_color(":D", "bright_purple");
+    let mut ping_sprite = state.tile_with_named_color("ring-inv", "bright_aqua");
     ping_sprite.color.a = 0;
 
     let e_player = state.world.spawn((Player, Pos::new(9, 9), player_sprite));

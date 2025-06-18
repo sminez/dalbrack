@@ -53,9 +53,16 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn tile_with_color(&self, ident: &str, color: &str) -> Tile {
+    pub fn tile_with_named_color(&self, ident: &str, color: &str) -> Tile {
         let mut tile = self.ts.tile(ident).unwrap();
         tile.color = *self.palette.get(color).unwrap();
+
+        tile
+    }
+
+    pub fn tile_with_color(&self, ident: &str, color: Color) -> Tile {
+        let mut tile = self.ts.tile(ident).unwrap();
+        tile.color = color;
 
         tile
     }
@@ -74,7 +81,7 @@ impl<'a> State<'a> {
             Err(_) => return Ok(()),
         };
 
-        let map = match self.world.query_one_mut::<&Map>(self.e_map) {
+        let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
             Ok(map) => map,
             Err(_) => return Ok(()),
         };
@@ -87,7 +94,7 @@ impl<'a> State<'a> {
 
     pub fn update_light_map(&mut self) -> anyhow::Result<()> {
         let light_map = {
-            let mut q = match self.world.query_one::<(&Map, &Fov)>(self.e_map) {
+            let mut q = match self.world.query_one::<(&mut Map, &Fov)>(self.e_map) {
                 Ok(q) => q,
                 Err(_) => return Ok(()),
             };
@@ -98,7 +105,15 @@ impl<'a> State<'a> {
             };
 
             let mut sources = self.world.query::<(&Pos, &LightSource)>();
-            LightMap::from_sources(map, fov, sources.iter().map(|(_, s)| s))
+            let light_map = LightMap::from_sources(map, fov, sources.iter().map(|(_, s)| s));
+
+            for p in fov.points.iter() {
+                if light_map.points.contains_key(p) {
+                    map.explored.insert(map.pos_idx(*p));
+                }
+            }
+
+            light_map
         };
 
         self.world.insert_one(self.e_map, light_map)?;
@@ -115,10 +130,13 @@ impl<'a> State<'a> {
     }
 
     fn blit_map(&mut self) -> anyhow::Result<()> {
-        let (map, light_map) = if self.world.satisfies::<(&Map, &LightMap)>(self.e_map)? {
+        let (map, fov_and_light_map) = if self
+            .world
+            .satisfies::<(&Map, &Fov, &LightMap)>(self.e_map)?
+        {
             self.world
-                .query_one_mut::<(&mut Map, &LightMap)>(self.e_map)
-                .map(|(map, fov)| (map, Some(fov)))?
+                .query_one_mut::<(&mut Map, &Fov, &LightMap)>(self.e_map)
+                .map(|(map, fov, light_map)| (map, Some((fov, light_map))))?
         } else {
             match self.world.query_one_mut::<&mut Map>(self.e_map) {
                 Ok(map) => (map, None),
@@ -140,12 +158,13 @@ impl<'a> State<'a> {
                 r.y = y as i32 * dxy;
                 let mut tile = map.tile_defs[*tile_idx];
 
-                if let Some(fov) = light_map.as_ref() {
+                if let Some((fov, light_map)) = fov_and_light_map.as_ref() {
                     let p = Pos::new(x as i32, y as i32);
-                    if fov.points.contains_key(&p) {
-                        map.explored.insert(map.pos_idx(p));
+                    if fov.points.contains(&p) {
+                        tile.t.color = light_map
+                            .apply_light_level(p, tile.t.color)
+                            .unwrap_or(black);
                     }
-                    tile.t.color = fov.apply_light_level(p, tile.t.color).unwrap_or(black);
                 }
 
                 if map.explored.contains(&map.idx(x, y)) {
@@ -161,7 +180,13 @@ impl<'a> State<'a> {
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
 
-        for (_entity, (pos, tile)) in self.world.query_mut::<(&Pos, &Tile)>() {
+        for (_entity, (pos, tile)) in self.world.query::<(&Pos, &Tile)>().iter() {
+            if let Ok(mut q) = self.world.query_one::<&Fov>(self.e_map) {
+                if !q.get().unwrap().points.contains(pos) {
+                    continue;
+                }
+            };
+
             r.x = pos.x * dxy;
             r.y = pos.y * dxy;
             self.ts.blit_tile(tile, r, &mut self.ui.buf)?;

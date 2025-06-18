@@ -41,6 +41,10 @@ impl Map {
         self.explored = (0..self.tiles.len()).collect();
     }
 
+    pub fn clear_explored(&mut self) {
+        self.explored = Default::default();
+    }
+
     #[inline]
     pub fn idx(&self, x: usize, y: usize) -> usize {
         y * self.w + x

@@ -43,6 +43,7 @@ impl Fov {
     }
 }
 
+/// TODO: the falloff / power should be part of this
 #[derive(Debug, Clone, Copy)]
 pub struct LightSource {
     pub range: u32,

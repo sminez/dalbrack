@@ -1,6 +1,7 @@
 use dalbrack::{
     Pos,
     map::{
+        Map,
         builders::{BspDungeon, BuildMap},
         fov::{FovRange, LightSource},
     },
@@ -8,6 +9,7 @@ use dalbrack::{
     state::State,
     tileset::TileSet,
 };
+use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 use std::time::Instant;
 
@@ -17,11 +19,10 @@ const H: i32 = 40;
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, "Risky Endevours")?;
-
     let (pos, map) = BspDungeon.new_map(W as usize, H as usize, &state);
     state.set_map(map);
 
-    let player_sprite = state.tile_with_color("@", "white");
+    let player_sprite = state.tile_with_named_color("@", "white");
     state.e_player = state.world.spawn((
         Player,
         FovRange(30),
@@ -32,6 +33,8 @@ pub fn main() -> anyhow::Result<()> {
         pos,
         player_sprite,
     ));
+
+    let mut rng = rand::rng();
 
     state.tick()?;
     let mut t1 = Instant::now();
@@ -65,6 +68,15 @@ pub fn main() -> anyhow::Result<()> {
                     Player::set_pos(pos, &mut state);
                 }
 
+                Keycode::Space => {
+                    let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
+                    if map.explored.len() == map.tiles.len() {
+                        map.clear_explored();
+                    } else {
+                        map.explore_all();
+                    }
+                }
+
                 Keycode::RightBracket => state.ui.dxy += 5,
                 Keycode::LeftBracket => state.ui.dxy -= 5,
 
@@ -79,8 +91,20 @@ pub fn main() -> anyhow::Result<()> {
                 y,
                 ..
             } => {
-                let pos = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
-                println!("CLICK {pos:?}");
+                let color = Color::RGB(
+                    rng.random_range(40..100),
+                    rng.random_range(40..100),
+                    rng.random_range(40..100),
+                );
+
+                state.world.spawn((
+                    Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32),
+                    state.tile_with_color("star", color),
+                    LightSource {
+                        range: rng.random_range(1..5),
+                        color,
+                    },
+                ));
             }
 
             _ => need_render = false,
