@@ -1,4 +1,7 @@
-use crate::tileset::{Grid, Tile, TileSet};
+use crate::{
+    Grid,
+    tileset::{Tile, TileSet},
+};
 use anyhow::{Context, anyhow, bail};
 use sdl2::pixels::Color;
 use std::{collections::HashMap, fs, path::Path};
@@ -7,7 +10,7 @@ pub fn parse_cp437_prefab(
     path: impl AsRef<Path>,
     ts: &TileSet<'_>,
     palette: &HashMap<String, Color>,
-) -> anyhow::Result<Grid> {
+) -> anyhow::Result<Grid<Tile>> {
     let raw = fs::read_to_string(path).context("reading prefab")?;
     let mut lines = raw.lines().peekable();
     let mut grid = Grid::default();
@@ -41,8 +44,9 @@ pub fn parse_cp437_prefab(
     for line in lines {
         for ch in line.chars() {
             let tile = defs.get(&ch).ok_or_else(|| anyhow!("no def for {ch:?}"))?;
-            grid.tiles.push(*tile);
+            grid.cells.push(*tile);
         }
+        grid.h += 1;
     }
 
     Ok(grid)

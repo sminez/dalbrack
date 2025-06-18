@@ -152,7 +152,7 @@ impl<'a> State<'a> {
         // FIXME: this needs to be stored in the light map once its written
         let black = *self.palette.get("hidden").unwrap();
 
-        for (y, line) in map.tiles.chunks(map.w).enumerate() {
+        for (y, line) in map.cells.chunks(map.w).enumerate() {
             for (x, tile_idx) in line.iter().enumerate() {
                 r.x = x as i32 * dxy;
                 r.y = y as i32 * dxy;

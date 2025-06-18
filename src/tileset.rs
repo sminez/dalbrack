@@ -1,5 +1,5 @@
 use crate::{
-    Pos,
+    Grid, Pos,
     data_files::{parse_cp437_tileset, parse_tile_map},
 };
 use anyhow::anyhow;
@@ -165,7 +165,7 @@ impl<'a> TileSet<'a> {
 
     pub fn blit_grid(
         &mut self,
-        grid: &Grid,
+        grid: &Grid<Tile>,
         x: i32,
         y: i32,
         dxy: u32,
@@ -173,7 +173,7 @@ impl<'a> TileSet<'a> {
     ) -> anyhow::Result<()> {
         let mut r = Rect::new(x, y, dxy, dxy);
 
-        for line in grid.tiles.chunks(grid.w) {
+        for line in grid.cells.chunks(grid.w) {
             for tile in line {
                 self.blit_tile(tile, r, dest)?;
                 r.x += dxy as i32;
@@ -208,15 +208,9 @@ impl AsTileIndex for Tile {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct Grid {
-    pub tiles: Vec<Tile>,
-    pub w: usize,
-}
-
-impl Grid {
+impl Grid<Tile> {
     pub fn spawn_all_at(&self, dx: i32, dy: i32, world: &mut World) {
-        for (col, line) in self.tiles.chunks(self.w).enumerate() {
+        for (col, line) in self.cells.chunks(self.w).enumerate() {
             for (row, tile) in line.iter().enumerate() {
                 world.spawn((Pos::new(dx + row as i32, dy + col as i32), *tile));
             }
