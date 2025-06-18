@@ -57,10 +57,14 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::Num6 => state.ts = TileSet::df_yayo()?,
                 Keycode::Num7 => state.ts = TileSet::df_kruggsmash()?,
 
-                Keycode::Right => Player::try_move(1, 0, &mut state),
-                Keycode::Left => Player::try_move(-1, 0, &mut state),
-                Keycode::Up => Player::try_move(0, -1, &mut state),
-                Keycode::Down => Player::try_move(0, 1, &mut state),
+                Keycode::L | Keycode::Right => Player::try_move(1, 0, &mut state),
+                Keycode::H | Keycode::Left => Player::try_move(-1, 0, &mut state),
+                Keycode::K | Keycode::Up => Player::try_move(0, -1, &mut state),
+                Keycode::J | Keycode::Down => Player::try_move(0, 1, &mut state),
+                Keycode::Y => Player::try_move(-1, -1, &mut state),
+                Keycode::U => Player::try_move(1, -1, &mut state),
+                Keycode::B => Player::try_move(-1, 1, &mut state),
+                Keycode::N => Player::try_move(1, 1, &mut state),
 
                 Keycode::R => {
                     let (pos, map) = BspDungeon.new_map(W as usize, H as usize, &state);
