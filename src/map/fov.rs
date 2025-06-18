@@ -54,7 +54,29 @@ pub struct LightMap {
 }
 
 impl LightMap {
-    pub fn new(map: &Map, from: Pos, LightSource { range, color }: LightSource) -> Self {
+    pub fn from_sources<'a>(
+        map: &Map,
+        fov: &Fov,
+        sources: impl Iterator<Item = (&'a Pos, &'a LightSource)>,
+    ) -> Self {
+        let mut points = HashMap::with_capacity(fov.points.len());
+
+        for (from, source) in sources {
+            let lm = Self::new(map, *from, fov, *source);
+            for (p, color) in lm.points.into_iter() {
+                points
+                    .entry(p)
+                    .and_modify(|current| {
+                        *current = blend(*current, color, 0.5);
+                    })
+                    .or_insert(color);
+            }
+        }
+
+        LightMap { points }
+    }
+
+    pub fn new(map: &Map, from: Pos, fov: &Fov, LightSource { range, color }: LightSource) -> Self {
         let mut points = HashMap::with_capacity(4 * (range * range) as usize);
         points.insert(from, color);
 
@@ -62,6 +84,7 @@ impl LightMap {
             let builder = LightBuilder {
                 points: &mut points,
                 color,
+                fov,
             };
             Caster::new(from, range, octant, builder, map).cast(1, 1.0, 0.0, false);
         }
@@ -77,6 +100,7 @@ impl LightMap {
 }
 
 trait Builder {
+    fn in_fov(&self, pos: Pos) -> bool;
     fn push(&mut self, pos: Pos, from: Pos);
 }
 
@@ -85,6 +109,10 @@ struct FovBuilder<'a> {
 }
 
 impl<'a> Builder for FovBuilder<'a> {
+    fn in_fov(&self, _pos: Pos) -> bool {
+        true
+    }
+
     fn push(&mut self, pos: Pos, _from: Pos) {
         self.points.insert(pos);
     }
@@ -93,9 +121,14 @@ impl<'a> Builder for FovBuilder<'a> {
 struct LightBuilder<'a> {
     points: &'a mut HashMap<Pos, Color>,
     color: Color,
+    fov: &'a Fov,
 }
 
 impl<'a> Builder for LightBuilder<'a> {
+    fn in_fov(&self, pos: Pos) -> bool {
+        self.fov.points.contains(&pos)
+    }
+
     fn push(&mut self, pos: Pos, from: Pos) {
         let d = from.fdist(pos);
         let mut falloff = (d * DIST_SCALE).powi(2);
@@ -159,9 +192,15 @@ where
                 // map dx, dy coords to map coords
                 let x = self.from.x + dx * self.xx + dy * self.xy;
                 let y = self.from.y + dx * self.yx + dy * self.yy;
+                let pos = Pos::new(x, y);
 
                 // If we're out of bounds then skip this cell
-                if x < 0 || y < 0 || x >= self.map.w as i32 || y >= self.map.h as i32 {
+                if x < 0
+                    || y < 0
+                    || x >= self.map.w as i32
+                    || y >= self.map.h as i32
+                    || !self.builder.in_fov(pos)
+                {
                     continue;
                 }
 
@@ -177,7 +216,6 @@ where
                     break; // past our sector: we're done
                 }
 
-                let pos = Pos::new(x, y);
                 let idx = self.map.pos_idx(pos);
 
                 if dx * dx + dy * dy <= r2 {

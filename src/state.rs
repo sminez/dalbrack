@@ -4,7 +4,7 @@ use crate::{
     data_files::parse_color_palette,
     map::{
         Map,
-        fov::{LightMap, LightSource},
+        fov::{Fov, FovRange, LightMap, LightSource},
     },
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
@@ -44,6 +44,7 @@ impl<'a> State<'a> {
 
     pub fn tick(&mut self) -> anyhow::Result<()> {
         self.update_fov()?;
+        self.update_light_map()?;
 
         self.ui.clear();
         self.blit_all()?;
@@ -68,21 +69,39 @@ impl<'a> State<'a> {
     /// This will no-op rather than error if we are missing the correct player components
     /// or if the map is missing.
     pub fn update_fov(&mut self) -> anyhow::Result<()> {
-        let (pos, source) = match self
-            .world
-            .query_one_mut::<(&Pos, &LightSource)>(self.e_player)
-        {
-            Ok((pos, source)) => (*pos, *source),
+        let (pos, range) = match self.world.query_one_mut::<(&Pos, &FovRange)>(self.e_player) {
+            Ok((pos, range)) => (*pos, *range),
             Err(_) => return Ok(()),
         };
 
-        let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
+        let map = match self.world.query_one_mut::<&Map>(self.e_map) {
             Ok(map) => map,
             Err(_) => return Ok(()),
         };
 
-        let fov = LightMap::new(map, pos, source);
+        let fov = Fov::new(map, pos, range);
         self.world.insert_one(self.e_map, fov)?;
+
+        Ok(())
+    }
+
+    pub fn update_light_map(&mut self) -> anyhow::Result<()> {
+        let light_map = {
+            let mut q = match self.world.query_one::<(&Map, &Fov)>(self.e_map) {
+                Ok(q) => q,
+                Err(_) => return Ok(()),
+            };
+
+            let (map, fov) = match q.get() {
+                Some((map, fov)) => (map, fov),
+                None => return Ok(()),
+            };
+
+            let mut sources = self.world.query::<(&Pos, &LightSource)>();
+            LightMap::from_sources(map, fov, sources.iter().map(|(_, s)| s))
+        };
+
+        self.world.insert_one(self.e_map, light_map)?;
 
         Ok(())
     }
