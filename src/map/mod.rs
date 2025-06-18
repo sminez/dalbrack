@@ -1,7 +1,7 @@
 use crate::{
     Pos,
     map::{
-        fov::{Fov, LightSource, determine_fov},
+        fov::{LightMap, LightSource, determine_fov},
         map_tile::MapTile,
     },
     state::State,
@@ -66,7 +66,7 @@ impl Map {
     }
 
     /// Compute the FOV from a given point in terms of tile indices
-    pub fn fov(&self, from: Pos, source: LightSource) -> Fov {
+    pub fn fov(&self, from: Pos, source: LightSource) -> LightMap {
         determine_fov(self, from, source)
     }
 

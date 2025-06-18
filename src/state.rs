@@ -4,7 +4,7 @@ use crate::{
     data_files::parse_color_palette,
     map::{
         Map,
-        fov::{Fov, LightSource},
+        fov::{LightMap, LightSource},
     },
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
@@ -96,9 +96,9 @@ impl<'a> State<'a> {
     }
 
     fn blit_map(&mut self) -> anyhow::Result<()> {
-        let (map, fov) = if self.world.satisfies::<(&Map, &Fov)>(self.e_map)? {
+        let (map, fov) = if self.world.satisfies::<(&Map, &LightMap)>(self.e_map)? {
             self.world
-                .query_one_mut::<(&mut Map, &Fov)>(self.e_map)
+                .query_one_mut::<(&mut Map, &LightMap)>(self.e_map)
                 .map(|(map, fov)| (map, Some(fov)))?
         } else {
             match self.world.query_one_mut::<&mut Map>(self.e_map) {
@@ -113,7 +113,6 @@ impl<'a> State<'a> {
         r.y = 0;
 
         // FIXME: this needs to be stored in the light map once its written
-        // let black = *self.palette.get("grey16").unwrap();
         let black = *self.palette.get("hidden").unwrap();
 
         for (y, line) in map.tiles.chunks(map.w).enumerate() {
@@ -124,10 +123,10 @@ impl<'a> State<'a> {
 
                 if let Some(fov) = fov.as_ref() {
                     let p = Pos::new(x as i32, y as i32);
-                    if fov.points.contains(&p) {
+                    if fov.points.contains_key(&p) {
                         map.explored.insert(map.pos_idx(p));
                     }
-                    fov.apply_light_level(p, &mut tile.t.color, black);
+                    tile.t.color = fov.apply_light_level(p, tile.t.color).unwrap_or(black);
                 }
 
                 if map.explored.contains(&map.idx(x, y)) {

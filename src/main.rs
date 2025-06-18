@@ -25,7 +25,7 @@ pub fn main() -> anyhow::Result<()> {
     state.e_player = state.world.spawn((
         Player,
         LightSource {
-            range: 8,
+            range: 30,
             color: Color::RGB(80, 50, 20),
         },
         pos,

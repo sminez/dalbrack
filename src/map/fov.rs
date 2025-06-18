@@ -6,14 +6,21 @@
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
 use crate::{Pos, map::Map};
 use sdl2::pixels::Color;
-use std::collections::HashSet;
+use std::collections::HashMap;
 
+/// Multipliers for each octant to map to the correct coordinate system
 const MULTIPLIERS: [[i32; 8]; 4] = [
     [1, 0, 0, -1, -1, 0, 0, 1],
     [0, 1, -1, 0, 0, -1, 1, 0],
     [0, 1, 1, 0, 0, -1, -1, 0],
     [1, 0, 0, 1, -1, 0, 0, -1],
 ];
+/// Scaling factor for inverse-square falloff
+const DIST_SCALE: f32 = 0.15;
+/// Exponent to correct with when r^2 drops below 1.0
+const EXP_FALLOFF: f32 = 0.11;
+/// % of original color to use when blending light levels
+const BLEND_PERC: f32 = 0.5;
 
 #[derive(Debug, Clone, Copy)]
 pub struct LightSource {
@@ -21,32 +28,21 @@ pub struct LightSource {
     pub color: Color,
 }
 
-pub struct Fov {
-    pub points: HashSet<Pos>,
-    pub center: Pos,
-    pub range: u32,
-    pub color: Color,
+// pub struct Fov(HashSet<Pos>);
+
+pub struct LightMap {
+    pub points: HashMap<Pos, Color>,
 }
 
-impl Fov {
-    pub fn apply_light_level(&self, p: Pos, color: &mut Color, black: Color) {
-        if !self.points.contains(&p) {
-            *color = black;
-            return;
-        }
+impl LightMap {
+    // pub fn as_fov(&self) -> Fov {
+    //     Fov(self.points.keys().copied().collect())
+    // }
 
-        let step = 0.2;
-        let d = self.center.fdist(p);
-        let mut falloff = (d * step).powi(2);
-        if falloff < 1.0 {
-            // This _kind_ of works but is definitely a hack
-            falloff = falloff.powf(0.11);
-        }
+    pub fn apply_light_level(&self, p: Pos, color: Color) -> Option<Color> {
+        let light_color = self.points.get(&p)?;
 
-        *color = blend(*color, self.color, 0.6);
-        color.r = (color.r as f32 / falloff) as u8;
-        color.g = (color.g as f32 / falloff) as u8;
-        color.b = (color.b as f32 / falloff) as u8;
+        Some(blend(color, *light_color, BLEND_PERC))
     }
 }
 
@@ -54,35 +50,38 @@ pub(super) fn determine_fov(
     map: &Map,
     from: Pos,
     LightSource { range, color }: LightSource,
-) -> Fov {
-    let mut points = HashSet::with_capacity(4 * (range * range) as usize);
-    points.insert(from);
+) -> LightMap {
+    let mut points = HashMap::with_capacity(4 * (range * range) as usize);
+    points.insert(from, color);
 
     for octant in 0..8 {
-        Caster::new(from, range, octant, &mut points, map).cast(1, 1.0, 0.0, false);
+        Caster::new(from, range, color, octant, &mut points, map).cast(1, 1.0, 0.0, false);
     }
 
-    Fov {
-        points,
-        center: from,
-        range,
-        color,
-    }
+    LightMap { points }
 }
 
 struct Caster<'a> {
     from: Pos,
     range: u32,
+    color: Color,
     xx: i32,
     xy: i32,
     yx: i32,
     yy: i32,
-    fov: &'a mut HashSet<Pos>,
+    points: &'a mut HashMap<Pos, Color>,
     map: &'a Map,
 }
 
 impl<'a> Caster<'a> {
-    fn new(from: Pos, range: u32, octant: usize, fov: &'a mut HashSet<Pos>, map: &'a Map) -> Self {
+    fn new(
+        from: Pos,
+        range: u32,
+        color: Color,
+        octant: usize,
+        points: &'a mut HashMap<Pos, Color>,
+        map: &'a Map,
+    ) -> Self {
         let xx = MULTIPLIERS[0][octant];
         let xy = MULTIPLIERS[1][octant];
         let yx = MULTIPLIERS[2][octant];
@@ -91,11 +90,12 @@ impl<'a> Caster<'a> {
         Self {
             from,
             range,
+            color,
             xx,
             xy,
             yx,
             yy,
-            fov,
+            points,
             map,
         }
     }
@@ -132,7 +132,7 @@ impl<'a> Caster<'a> {
                 let idx = self.map.pos_idx(pos);
 
                 if dx * dx + dy * dy <= r2 {
-                    self.fov.insert(pos);
+                    self.points.insert(pos, self.color(pos));
                 }
 
                 let cur_blocked = self.map.tile_defs[self.map.tiles[idx]].block_sight;
@@ -160,6 +160,20 @@ impl<'a> Caster<'a> {
                 break;
             }
         }
+    }
+
+    fn color(&self, p: Pos) -> Color {
+        let d = self.from.fdist(p);
+        let mut falloff = (d * DIST_SCALE).powi(2);
+        if falloff < 1.0 {
+            falloff = falloff.powf(EXP_FALLOFF);
+        }
+
+        Color::RGB(
+            (self.color.r as f32 / falloff) as u8,
+            (self.color.g as f32 / falloff) as u8,
+            (self.color.b as f32 / falloff) as u8,
+        )
     }
 }
 
