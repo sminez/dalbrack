@@ -1,11 +1,4 @@
-use crate::{
-    Pos,
-    map::{
-        fov::{LightMap, LightSource, determine_fov},
-        map_tile::MapTile,
-    },
-    state::State,
-};
+use crate::{Pos, map::map_tile::MapTile, state::State};
 use sdl2::rect::Rect;
 use std::{
     cmp::{max, min},
@@ -63,11 +56,6 @@ impl Map {
         let tile_idx = self.tiles[idx];
 
         &self.tile_defs[tile_idx]
-    }
-
-    /// Compute the FOV from a given point in terms of tile indices
-    pub fn fov(&self, from: Pos, source: LightSource) -> LightMap {
-        determine_fov(self, from, source)
     }
 
     pub fn carve_rect(&mut self, r: Rect) {

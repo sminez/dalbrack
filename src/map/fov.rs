@@ -1,12 +1,10 @@
-//! Compute the FOV from a given point in terms of tile indices
-//!
 //! See:
 //!   https://www.roguebasin.com/index.php/FOV_using_recursive_shadowcasting
 //!   https://www.roguebasin.com/index.php/Line_of_Sight_-_Tobias_Downer
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
 use crate::{Pos, map::Map};
 use sdl2::pixels::Color;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Multipliers for each octant to map to the correct coordinate system
 const MULTIPLIERS: [[i32; 8]; 4] = [
@@ -23,21 +21,53 @@ const EXP_FALLOFF: f32 = 0.11;
 const BLEND_PERC: f32 = 0.5;
 
 #[derive(Debug, Clone, Copy)]
+pub struct FovRange(pub u32);
+
+pub struct Fov {
+    pub points: HashSet<Pos>,
+}
+
+impl Fov {
+    pub fn new(map: &Map, from: Pos, FovRange(range): FovRange) -> Self {
+        let mut points = HashSet::with_capacity(4 * (range * range) as usize);
+        points.insert(from);
+
+        for octant in 0..8 {
+            let builder = FovBuilder {
+                points: &mut points,
+            };
+            Caster::new(from, range, octant, builder, map).cast(1, 1.0, 0.0, false);
+        }
+
+        Fov { points }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct LightSource {
     pub range: u32,
     pub color: Color,
 }
-
-// pub struct Fov(HashSet<Pos>);
 
 pub struct LightMap {
     pub points: HashMap<Pos, Color>,
 }
 
 impl LightMap {
-    // pub fn as_fov(&self) -> Fov {
-    //     Fov(self.points.keys().copied().collect())
-    // }
+    pub fn new(map: &Map, from: Pos, LightSource { range, color }: LightSource) -> Self {
+        let mut points = HashMap::with_capacity(4 * (range * range) as usize);
+        points.insert(from, color);
+
+        for octant in 0..8 {
+            let builder = LightBuilder {
+                points: &mut points,
+                color,
+            };
+            Caster::new(from, range, octant, builder, map).cast(1, 1.0, 0.0, false);
+        }
+
+        LightMap { points }
+    }
 
     pub fn apply_light_level(&self, p: Pos, color: Color) -> Option<Color> {
         let light_color = self.points.get(&p)?;
@@ -46,42 +76,62 @@ impl LightMap {
     }
 }
 
-pub(super) fn determine_fov(
-    map: &Map,
-    from: Pos,
-    LightSource { range, color }: LightSource,
-) -> LightMap {
-    let mut points = HashMap::with_capacity(4 * (range * range) as usize);
-    points.insert(from, color);
-
-    for octant in 0..8 {
-        Caster::new(from, range, color, octant, &mut points, map).cast(1, 1.0, 0.0, false);
-    }
-
-    LightMap { points }
+trait Builder {
+    fn push(&mut self, pos: Pos, from: Pos);
 }
 
-struct Caster<'a> {
+struct FovBuilder<'a> {
+    points: &'a mut HashSet<Pos>,
+}
+
+impl<'a> Builder for FovBuilder<'a> {
+    fn push(&mut self, pos: Pos, _from: Pos) {
+        self.points.insert(pos);
+    }
+}
+
+struct LightBuilder<'a> {
+    points: &'a mut HashMap<Pos, Color>,
+    color: Color,
+}
+
+impl<'a> Builder for LightBuilder<'a> {
+    fn push(&mut self, pos: Pos, from: Pos) {
+        let d = from.fdist(pos);
+        let mut falloff = (d * DIST_SCALE).powi(2);
+        if falloff < 1.0 {
+            falloff = falloff.powf(EXP_FALLOFF);
+        }
+
+        let color = Color::RGB(
+            (self.color.r as f32 / falloff) as u8,
+            (self.color.g as f32 / falloff) as u8,
+            (self.color.b as f32 / falloff) as u8,
+        );
+
+        self.points.insert(pos, color);
+    }
+}
+
+struct Caster<'a, B>
+where
+    B: Builder,
+{
     from: Pos,
     range: u32,
-    color: Color,
     xx: i32,
     xy: i32,
     yx: i32,
     yy: i32,
-    points: &'a mut HashMap<Pos, Color>,
+    builder: B,
     map: &'a Map,
 }
 
-impl<'a> Caster<'a> {
-    fn new(
-        from: Pos,
-        range: u32,
-        color: Color,
-        octant: usize,
-        points: &'a mut HashMap<Pos, Color>,
-        map: &'a Map,
-    ) -> Self {
+impl<'a, B> Caster<'a, B>
+where
+    B: Builder,
+{
+    fn new(from: Pos, range: u32, octant: usize, builder: B, map: &'a Map) -> Self {
         let xx = MULTIPLIERS[0][octant];
         let xy = MULTIPLIERS[1][octant];
         let yx = MULTIPLIERS[2][octant];
@@ -90,12 +140,11 @@ impl<'a> Caster<'a> {
         Self {
             from,
             range,
-            color,
             xx,
             xy,
             yx,
             yy,
-            points,
+            builder,
             map,
         }
     }
@@ -132,7 +181,7 @@ impl<'a> Caster<'a> {
                 let idx = self.map.pos_idx(pos);
 
                 if dx * dx + dy * dy <= r2 {
-                    self.points.insert(pos, self.color(pos));
+                    self.builder.push(pos, self.from);
                 }
 
                 let cur_blocked = self.map.tile_defs[self.map.tiles[idx]].block_sight;
@@ -160,20 +209,6 @@ impl<'a> Caster<'a> {
                 break;
             }
         }
-    }
-
-    fn color(&self, p: Pos) -> Color {
-        let d = self.from.fdist(p);
-        let mut falloff = (d * DIST_SCALE).powi(2);
-        if falloff < 1.0 {
-            falloff = falloff.powf(EXP_FALLOFF);
-        }
-
-        Color::RGB(
-            (self.color.r as f32 / falloff) as u8,
-            (self.color.g as f32 / falloff) as u8,
-            (self.color.b as f32 / falloff) as u8,
-        )
     }
 }
 

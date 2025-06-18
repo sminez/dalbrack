@@ -81,7 +81,7 @@ impl<'a> State<'a> {
             Err(_) => return Ok(()),
         };
 
-        let fov = map.fov(pos, source);
+        let fov = LightMap::new(map, pos, source);
         self.world.insert_one(self.e_map, fov)?;
 
         Ok(())
@@ -96,7 +96,7 @@ impl<'a> State<'a> {
     }
 
     fn blit_map(&mut self) -> anyhow::Result<()> {
-        let (map, fov) = if self.world.satisfies::<(&Map, &LightMap)>(self.e_map)? {
+        let (map, light_map) = if self.world.satisfies::<(&Map, &LightMap)>(self.e_map)? {
             self.world
                 .query_one_mut::<(&mut Map, &LightMap)>(self.e_map)
                 .map(|(map, fov)| (map, Some(fov)))?
@@ -121,7 +121,7 @@ impl<'a> State<'a> {
                 r.y = y as i32 * dxy;
                 let mut tile = map.tile_defs[*tile_idx];
 
-                if let Some(fov) = fov.as_ref() {
+                if let Some(fov) = light_map.as_ref() {
                     let p = Pos::new(x as i32, y as i32);
                     if fov.points.contains_key(&p) {
                         map.explored.insert(map.pos_idx(p));
