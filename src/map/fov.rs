@@ -4,7 +4,7 @@
 //!   https://www.roguebasin.com/index.php/FOV_using_recursive_shadowcasting
 //!   https://www.roguebasin.com/index.php/Line_of_Sight_-_Tobias_Downer
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
-use crate::{Pos, map::Map, player::FovRange};
+use crate::{Pos, map::Map};
 use sdl2::pixels::Color;
 use std::collections::HashSet;
 
@@ -14,6 +14,12 @@ const MULTIPLIERS: [[i32; 8]; 4] = [
     [0, 1, 1, 0, 0, -1, -1, 0],
     [1, 0, 0, 1, -1, 0, 0, -1],
 ];
+
+#[derive(Debug, Clone, Copy)]
+pub struct LightSource {
+    pub range: u32,
+    pub color: Color,
+}
 
 pub struct Fov {
     pub points: HashSet<Pos>,
@@ -44,7 +50,11 @@ impl Fov {
     }
 }
 
-pub(super) fn determine_fov(map: &Map, from: Pos, FovRange { range, color }: FovRange) -> Fov {
+pub(super) fn determine_fov(
+    map: &Map,
+    from: Pos,
+    LightSource { range, color }: LightSource,
+) -> Fov {
     let mut points = HashSet::with_capacity(4 * (range * range) as usize);
     points.insert(from);
 

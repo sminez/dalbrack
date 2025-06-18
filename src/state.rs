@@ -2,8 +2,10 @@
 use crate::{
     Pos,
     data_files::parse_color_palette,
-    map::{Map, fov::Fov},
-    player::FovRange,
+    map::{
+        Map,
+        fov::{Fov, LightSource},
+    },
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
 };
@@ -66,8 +68,11 @@ impl<'a> State<'a> {
     /// This will no-op rather than error if we are missing the correct player components
     /// or if the map is missing.
     pub fn update_fov(&mut self) -> anyhow::Result<()> {
-        let (pos, fov_range) = match self.world.query_one_mut::<(&Pos, &FovRange)>(self.e_player) {
-            Ok((pos, fov)) => (*pos, *fov),
+        let (pos, source) = match self
+            .world
+            .query_one_mut::<(&Pos, &LightSource)>(self.e_player)
+        {
+            Ok((pos, source)) => (*pos, *source),
             Err(_) => return Ok(()),
         };
 
@@ -76,7 +81,7 @@ impl<'a> State<'a> {
             Err(_) => return Ok(()),
         };
 
-        let fov = map.fov(pos, fov_range);
+        let fov = map.fov(pos, source);
         self.world.insert_one(self.e_map, fov)?;
 
         Ok(())

@@ -1,7 +1,10 @@
 use dalbrack::{
     Pos,
-    map::builders::{BspDungeon, BuildMap},
-    player::{FovRange, Player},
+    map::{
+        builders::{BspDungeon, BuildMap},
+        fov::LightSource,
+    },
+    player::Player,
     state::State,
     tileset::TileSet,
 };
@@ -21,9 +24,8 @@ pub fn main() -> anyhow::Result<()> {
     let player_sprite = state.tile_with_color("@", "white");
     state.e_player = state.world.spawn((
         Player,
-        FovRange {
+        LightSource {
             range: 8,
-            // color: Color::RGB(226, 88, 34),
             color: Color::RGB(80, 50, 20),
         },
         pos,

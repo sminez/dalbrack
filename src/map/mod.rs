@@ -1,10 +1,9 @@
 use crate::{
     Pos,
     map::{
-        fov::{Fov, determine_fov},
+        fov::{Fov, LightSource, determine_fov},
         map_tile::MapTile,
     },
-    player::FovRange,
     state::State,
 };
 use sdl2::rect::Rect;
@@ -67,8 +66,8 @@ impl Map {
     }
 
     /// Compute the FOV from a given point in terms of tile indices
-    pub fn fov(&self, from: Pos, fov_range: FovRange) -> Fov {
-        determine_fov(self, from, fov_range)
+    pub fn fov(&self, from: Pos, source: LightSource) -> Fov {
+        determine_fov(self, from, source)
     }
 
     pub fn carve_rect(&mut self, r: Rect) {
