@@ -15,10 +15,11 @@ const MULTIPLIERS: [[i32; 8]; 4] = [
 ];
 /// Scaling factor for inverse-square falloff
 const DIST_SCALE: f32 = 0.15;
+// const DIST_SCALE: f32 = 0.15;
 /// Exponent to correct with when r^2 drops below 1.0
 const EXP_FALLOFF: f32 = 0.11;
 /// % of original color to use when blending light levels
-const BLEND_PERC: f32 = 0.5;
+const BLEND_PERC: f32 = 0.6;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FovRange(pub u32);
@@ -132,7 +133,7 @@ impl<'a> Builder for LightBuilder<'a> {
 
     fn push(&mut self, pos: Pos, from: Pos) {
         let d = from.fdist(pos);
-        let mut falloff = (d * DIST_SCALE).powi(2);
+        let mut falloff = DIST_SCALE * d.powi(2);
         if falloff < 1.0 {
             falloff = falloff.powf(EXP_FALLOFF);
         }

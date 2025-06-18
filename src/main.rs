@@ -13,7 +13,7 @@ use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 use std::time::Instant;
 
-const DXY: u32 = 25;
+const DXY: u32 = 35;
 const W: i32 = 60;
 const H: i32 = 40;
 
@@ -27,7 +27,7 @@ pub fn main() -> anyhow::Result<()> {
         Player,
         FovRange(30),
         LightSource {
-            range: 12,
+            range: 5,
             color: Color::RGB(80, 50, 20),
         },
         pos,
@@ -66,6 +66,17 @@ pub fn main() -> anyhow::Result<()> {
                     let (pos, map) = BspDungeon.new_map(W as usize, H as usize, &state);
                     state.set_map(map);
                     Player::set_pos(pos, &mut state);
+                    let lights: Vec<_> = state
+                        .world
+                        .query::<&LightSource>()
+                        .without::<&Player>()
+                        .iter()
+                        .map(|(e, _)| e)
+                        .collect();
+
+                    for entity in lights.into_iter() {
+                        state.world.despawn(entity)?;
+                    }
                 }
 
                 Keycode::Space => {
@@ -92,16 +103,16 @@ pub fn main() -> anyhow::Result<()> {
                 ..
             } => {
                 let color = Color::RGB(
-                    rng.random_range(40..100),
-                    rng.random_range(40..100),
-                    rng.random_range(40..100),
+                    rng.random_range(60..150),
+                    rng.random_range(60..150),
+                    rng.random_range(60..150),
                 );
 
                 state.world.spawn((
                     Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32),
                     state.tile_with_color("star", color),
                     LightSource {
-                        range: rng.random_range(1..5),
+                        range: rng.random_range(5..12),
                         color,
                     },
                 ));

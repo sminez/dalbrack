@@ -164,6 +164,8 @@ impl<'a> State<'a> {
                         tile.t.color = light_map
                             .apply_light_level(p, tile.t.color)
                             .unwrap_or(black);
+                    } else {
+                        tile.t.color = black;
                     }
                 }
 
