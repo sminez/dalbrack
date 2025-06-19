@@ -71,7 +71,7 @@ impl LightMap {
 
     pub fn new(map: &Map, from: Pos, fov: &Fov, LightSource { range, color }: LightSource) -> Self {
         let points: HashMap<Pos, Color> =
-            RPACaster::new(from, range as i32, 0.33, Vis::Any, |pos| {
+            RPACaster::new(from, range as i32, 0.33, Vis::CenterPlus, |pos| {
                 map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
             })
             .filter(|(p, opacity)| fov.points.contains(p) && *opacity < 1.0)
@@ -103,10 +103,11 @@ impl LightMap {
     }
 }
 
+#[allow(dead_code)]
 enum Vis {
     Any,
     CenterPlus,
-    // All,
+    All,
 }
 
 impl Vis {
@@ -114,7 +115,7 @@ impl Vis {
         match self {
             Self::Any => v_near || v_center || v_far,
             Self::CenterPlus => v_center && (v_near || v_far),
-            // Self::All => v_near && v_center && v_far,
+            Self::All => v_near && v_center && v_far,
         }
     }
 }
