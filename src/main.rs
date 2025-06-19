@@ -122,6 +122,17 @@ pub fn main() -> anyhow::Result<()> {
                 ));
             }
 
+            Event::MouseButtonDown {
+                mouse_btn: MouseButton::Right,
+                x,
+                y,
+                ..
+            } => {
+                let pos = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
+                let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
+                map.tiles[pos] = if map.tiles[pos] == 0 { 1 } else { 0 };
+            }
+
             _ => need_render = false,
         }
 
