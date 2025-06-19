@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Add, AddAssign, Index, IndexMut};
 
 /// A cell position within a [Grid]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -18,6 +18,23 @@ impl Pos {
 
     pub fn fdist(&self, other: Pos) -> f32 {
         (((self.x - other.x).pow(2) + (self.y - other.y).pow(2)) as f32).sqrt()
+    }
+}
+
+impl Add<Pos> for Pos {
+    type Output = Pos;
+
+    fn add(self, rhs: Pos) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl AddAssign<Pos> for Pos {
+    fn add_assign(&mut self, rhs: Pos) {
+        *self = *self + rhs
     }
 }
 
@@ -41,8 +58,25 @@ impl<T> Grid<T> {
     }
 
     pub fn cell_at(&self, pos: Pos) -> &T {
-        let idx = self.idx(pos.x as usize, pos.y as usize);
+        let idx = self.pos_idx(pos);
         &self.cells[idx]
+    }
+
+    pub fn contains_pos(&self, pos: Pos) -> bool {
+        pos.x >= 0 && pos.y >= 0 && (pos.x as usize) < self.w && (pos.y as usize) < self.h
+    }
+
+    pub fn try_cell_at(&self, pos: Pos) -> Option<&T> {
+        if !self.contains_pos(pos) {
+            return None;
+        }
+
+        let idx = self.pos_idx(pos);
+        if idx >= self.cells.len() {
+            None
+        } else {
+            Some(&self.cells[idx])
+        }
     }
 
     pub fn len(&self) -> usize {

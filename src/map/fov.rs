@@ -8,13 +8,6 @@ use crate::{Pos, map::Map};
 use sdl2::pixels::Color;
 use std::collections::{HashMap, HashSet};
 
-/// Multipliers for each octant to map to the correct coordinate system
-const MULTIPLIERS: [[i32; 8]; 4] = [
-    [1, 0, 0, -1, -1, 0, 0, 1],
-    [0, 1, -1, 0, 0, -1, 1, 0],
-    [0, 1, 1, 0, 0, -1, -1, 0],
-    [1, 0, 0, 1, -1, 0, 0, -1],
-];
 /// Scaling factor for inverse-square falloff
 const DIST_SCALE: f32 = 0.15;
 /// Exponent to correct with when r^2 drops below 1.0
@@ -31,15 +24,11 @@ pub struct Fov {
 
 impl Fov {
     pub fn new(map: &Map, from: Pos, FovRange(range): FovRange) -> Self {
-        let mut points = HashSet::with_capacity(4 * (range * range) as usize);
-        points.insert(from);
-
-        for octant in 0..8 {
-            let builder = FovBuilder {
-                points: &mut points,
-            };
-            Caster::new(from, range, octant, builder, map).cast(1, 1.0, 0.0, false);
-        }
+        let points: HashSet<Pos> = RPACaster::new(from, range as i32, 0.33, |pos| {
+            map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
+        })
+        .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
+        .collect();
 
         Fov { points }
     }
@@ -80,17 +69,27 @@ impl LightMap {
     }
 
     pub fn new(map: &Map, from: Pos, fov: &Fov, LightSource { range, color }: LightSource) -> Self {
-        let mut points = HashMap::with_capacity(4 * (range * range) as usize);
-        points.insert(from, color);
+        let points: HashMap<Pos, Color> = RPACaster::new(from, range as i32, 0.33, |pos| {
+            map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
+        })
+        .filter(|(p, opacity)| fov.points.contains(p) && *opacity < 1.0)
+        .map(|(pos, opacity)| {
+            let d = from.fdist(pos);
+            let mut falloff = DIST_SCALE * d.powi(2);
+            if falloff < 1.0 {
+                falloff = falloff.powf(EXP_FALLOFF);
+            }
 
-        for octant in 0..8 {
-            let builder = LightBuilder {
-                points: &mut points,
-                color,
-                fov,
-            };
-            Caster::new(from, range, octant, builder, map).cast(1, 1.0, 0.0, false);
-        }
+            let transparency = 1.0 - opacity;
+            let cell_color = Color::RGB(
+                (color.r as f32 * transparency / falloff) as u8,
+                (color.g as f32 * transparency / falloff) as u8,
+                (color.b as f32 * transparency / falloff) as u8,
+            );
+
+            (pos, cell_color)
+        })
+        .collect();
 
         LightMap { points }
     }
@@ -102,154 +101,216 @@ impl LightMap {
     }
 }
 
-trait Builder {
-    fn in_fov(&self, pos: Pos) -> bool;
-    fn push(&mut self, pos: Pos, from: Pos);
-}
-
-struct FovBuilder<'a> {
-    points: &'a mut HashSet<Pos>,
-}
-
-impl<'a> Builder for FovBuilder<'a> {
-    fn in_fov(&self, _pos: Pos) -> bool {
-        true
-    }
-
-    fn push(&mut self, pos: Pos, _from: Pos) {
-        self.points.insert(pos);
-    }
-}
-
-struct LightBuilder<'a> {
-    points: &'a mut HashMap<Pos, Color>,
-    color: Color,
-    fov: &'a Fov,
-}
-
-impl<'a> Builder for LightBuilder<'a> {
-    fn in_fov(&self, pos: Pos) -> bool {
-        self.fov.points.contains(&pos)
-    }
-
-    fn push(&mut self, pos: Pos, from: Pos) {
-        let d = from.fdist(pos);
-        let mut falloff = DIST_SCALE * d.powi(2);
-        if falloff < 1.0 {
-            falloff = falloff.powf(EXP_FALLOFF);
-        }
-
-        let color = Color::RGB(
-            (self.color.r as f32 / falloff) as u8,
-            (self.color.g as f32 / falloff) as u8,
-            (self.color.b as f32 / falloff) as u8,
-        );
-
-        self.points.insert(pos, color);
-    }
-}
-
-struct Caster<'a, B>
+/// Restrictive Precise Angle Shadowcasting
+/// https://www.roguebasin.com/index.php/Restrictive_Precise_Angle_Shadowcasting
+struct RPACaster<F>
 where
-    B: Builder,
+    F: Fn(Pos) -> Option<f32>,
 {
+    /// Mapping from position to opacity
+    get_opacity: F,
+    /// location of obstructions encountered so far in the current octant and their opacity
+    obstructions: Vec<(Angle, f32)>,
+    /// Iterator of all candidate cells for the current octant
+    cells: OctantCells,
+    /// The octant currently being iterated over
+    octant: usize,
+    /// Radius to include cells up to
+    radius: i32,
+    /// Smoothed cutoff point for the given radius
+    r_cutoff: f32,
+    /// Origin point we are starting at
     from: Pos,
-    range: u32,
-    xx: i32,
-    xy: i32,
-    yx: i32,
-    yy: i32,
-    builder: B,
-    map: &'a Map,
 }
 
-impl<'a, B> Caster<'a, B>
+impl<F> RPACaster<F>
 where
-    B: Builder,
+    F: Fn(Pos) -> Option<f32>,
 {
-    fn new(from: Pos, range: u32, octant: usize, builder: B, map: &'a Map) -> Self {
-        let xx = MULTIPLIERS[0][octant];
-        let xy = MULTIPLIERS[1][octant];
-        let yx = MULTIPLIERS[2][octant];
-        let yy = MULTIPLIERS[3][octant];
+    fn new(from: Pos, radius: i32, smoothing: f32, get_opacity: F) -> Self {
+        let r_cutoff = radius as f32 + smoothing;
 
         Self {
+            get_opacity,
+            obstructions: Vec::new(),
+            cells: OctantCells::new(radius, r_cutoff, 0),
+            octant: 0,
+            radius,
+            r_cutoff,
             from,
-            range,
-            xx,
-            xy,
-            yx,
-            yy,
-            builder,
-            map,
         }
     }
 
-    fn cast(&mut self, row: i32, mut start: f32, end: f32, mut prev_blocked: bool) {
-        let r2 = (self.range * self.range) as i32;
-        let mut new_start = -1.0;
-
-        for i in row..=self.range as i32 {
-            let dx = i;
-            for dy in (0..=i).rev() {
-                // map dx, dy coords to map coords
-                let x = self.from.x + dx * self.xx + dy * self.xy;
-                let y = self.from.y + dx * self.yx + dy * self.yy;
-                let pos = Pos::new(x, y);
-
-                // If we're out of bounds then skip this cell
-                if x < 0
-                    || y < 0
-                    || x >= self.map.w as i32
-                    || y >= self.map.h as i32
-                    || !self.builder.in_fov(pos)
-                {
-                    continue;
-                }
-
-                // slopes from our origin to the top-left & bottom-right corners of this cell
-                let l_slope = (dy as f32 + 0.5) / (dx as f32 - 0.5);
-                let r_slope = (dy as f32 - 0.5) / (dx as f32 + 0.5);
-
-                // > / < for a more permissive viewing angle
-                // >= / <= for a more restricted viewing angle
-                if r_slope > start {
-                    continue; // before our sector: skip
-                } else if l_slope < end {
-                    break; // past our sector: we're done
-                }
-
-                let idx = self.map.pos_idx(pos);
-
-                if dx * dx + dy * dy <= r2 {
-                    self.builder.push(pos, self.from);
-                }
-
-                let cur_blocked = self.map.tile_defs[self.map.tiles[idx]].opacity > 0.0;
-                if prev_blocked {
-                    if cur_blocked {
-                        // still scanning a run of blocking cells
-                        new_start = r_slope;
-                    } else {
-                        // found the end of a run of blocking cells so set the left edge of our
-                        // sector to the right corner of the last blocking cell
-                        prev_blocked = false;
-                        start = new_start;
+    #[inline]
+    fn next_cell(&mut self) -> Option<(Pos, Angle, f32)> {
+        loop {
+            let (pos, angle) = match self.cells.next() {
+                Some(elem) => elem,
+                None => {
+                    if self.octant == 7 {
+                        return None; // all octants scanned
                     }
-                } else if cur_blocked {
-                    if l_slope <= start {
-                        self.cast(i + 1, start, l_slope, cur_blocked);
-                    }
-                    prev_blocked = true;
-                    new_start = r_slope;
+
+                    self.octant += 1;
+                    self.obstructions.clear();
+                    self.cells = OctantCells::new(self.radius, self.r_cutoff, self.octant);
+
+                    return self.next_cell();
                 }
+            };
+
+            // skip out of bounds cells
+            let pos = self.from + pos;
+            match (self.get_opacity)(pos) {
+                Some(opacity) => return Some((pos, angle, opacity)),
+                None => continue,
+            }
+        }
+    }
+}
+
+impl<F> Iterator for RPACaster<F>
+where
+    F: Fn(Pos) -> Option<f32>,
+{
+    type Item = (Pos, f32);
+
+    fn next(&mut self) -> Option<(Pos, f32)> {
+        let (pos, angle, mut cell_opacity) = self.next_cell()?;
+
+        let mut opacity: f32 = 0.0;
+        let mut v_near = true;
+        let mut v_center = true;
+        let mut v_far = true;
+
+        for &(o_angle, o_opacity) in self.obstructions.iter() {
+            v_near = v_near && !o_angle.contains(angle.near);
+            v_center = v_center && !o_angle.contains(angle.center);
+            v_far = v_far && !o_angle.contains(angle.far);
+
+            if !v_center {
+                opacity = opacity.max(0.5 * o_opacity);
             }
 
-            // row is scanned: check next row until the last cell is blocked
-            if prev_blocked {
+            // This is tunable
+            let visible = v_center && (v_near || v_far);
+            if !visible {
+                opacity = opacity.max(o_opacity);
+            }
+
+            if opacity >= 1.0 {
                 break;
             }
         }
+
+        cell_opacity += opacity;
+        if cell_opacity > 0.0 {
+            self.obstructions.push((angle, cell_opacity));
+        }
+
+        Some((pos, opacity))
+    }
+}
+
+#[derive(Default, Clone, Copy)]
+struct Angle {
+    near: f32,
+    center: f32,
+    far: f32,
+}
+
+impl Angle {
+    // using <= is more restrictive
+    fn contains(&self, angle: f32) -> bool {
+        self.near < angle && angle < self.far
+    }
+}
+
+const OCTANTS: [(i32, i32, bool); 8] = [
+    (1, 1, true),
+    (1, 1, false),
+    (1, -1, true),
+    (1, -1, false),
+    (-1, -1, true),
+    (-1, -1, false),
+    (-1, 1, true),
+    (-1, 1, false),
+];
+
+/// Iterator over the canidate cells offsets for FOV for a single octant centered at (0, 0).
+struct OctantCells {
+    quad_x: i32,
+    quad_y: i32,
+    is_vert: bool,
+    /// Radius to include cells up to
+    radius: i32,
+    /// Smoothed cutoff point for the given radius
+    r_cutoff: f32,
+    /// Current radial offset
+    dr: i32,
+    /// Current transverse offset
+    dx: i32,
+}
+
+impl OctantCells {
+    fn new(radius: i32, r_cutoff: f32, octant: usize) -> Self {
+        let (quad_x, quad_y, is_vert) = OCTANTS[octant];
+
+        Self {
+            quad_x,
+            quad_y,
+            is_vert,
+            radius,
+            r_cutoff,
+            dr: 0,
+            dx: 0,
+        }
+    }
+}
+
+impl Iterator for OctantCells {
+    type Item = (Pos, Angle);
+
+    fn next(&mut self) -> Option<(Pos, Angle)> {
+        if self.dr == 0 {
+            self.dr += 1;
+            return Some((Pos::new(0, 0), Angle::default()));
+        }
+
+        if self.dx > self.dr {
+            // end of row
+            self.dx = 0;
+            self.dr += 1;
+        }
+
+        if self.dr > self.radius {
+            return None; // end of octant
+        }
+
+        let (a, b) = if self.is_vert {
+            (self.dx * self.quad_x, self.dr * self.quad_y)
+        } else {
+            (self.dr * self.quad_x, self.dx * self.quad_y)
+        };
+
+        if (a as f32).hypot(b as f32) >= self.r_cutoff {
+            // at cutoff so try next cell
+            self.dx += 1;
+            return self.next();
+        }
+
+        let n_cells_in_row = self.dr + 1;
+        let angle_allocation = 1.0 / n_cells_in_row as f32;
+        let near = self.dx as f32 * angle_allocation;
+        let angle = Angle {
+            near,
+            center: near + 0.5 * angle_allocation,
+            far: near + angle_allocation,
+        };
+
+        self.dx += 1;
+
+        Some((Pos::new(a, b), angle))
     }
 }
 
