@@ -5,7 +5,7 @@ use std::{
 
 mod astar;
 
-pub use astar::WeightedGrid;
+pub use astar::a_star;
 
 /// A cell position within a [Grid]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

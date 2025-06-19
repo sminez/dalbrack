@@ -1,6 +1,5 @@
 use dalbrack::{
     Pos, TITLE,
-    grid::WeightedGrid,
     map::{
         Map,
         builders::{BspDungeon, BuildMap},

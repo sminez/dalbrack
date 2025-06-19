@@ -8,75 +8,69 @@ use std::{
     iter::from_fn,
 };
 
-pub trait WeightedGrid {
-    type Cell;
+/// Compute a path from `a` to `b` in terms of a sequence of [Pos] steps.
+///
+/// If no path can be found then the resulting vec will be empty.
+pub fn a_star<T, F>(a: Pos, b: Pos, grid: &Grid<T>, cost_fn: F) -> Vec<Pos>
+where
+    F: Fn(Pos) -> Option<i32>,
+{
+    let mut came_from = IndexMap::new();
+    came_from.insert(a, (usize::MAX, 0)); // parent and cost
 
-    fn grid(&self) -> &Grid<Self::Cell>;
-    fn cost(&self, pos: Pos) -> Option<i32>;
+    let mut open_set = BinaryHeap::new();
+    open_set.push(Candidate {
+        estimate: 0,
+        cost: 0,
+        index: 0,
+    });
 
-    /// Compute a path from `a` to `b` in terms of a sequence of [Pos] steps.
-    ///
-    /// If no path can be found then the resulting vec will be empty.
-    fn a_star(&self, a: Pos, b: Pos) -> Vec<Pos> {
-        let mut came_from = IndexMap::new();
-        came_from.insert(a, (usize::MAX, 0)); // parent and cost
-
-        let mut open_set = BinaryHeap::new();
-        open_set.push(Candidate {
-            estimate: 0,
-            cost: 0,
-            index: 0,
-        });
-
-        let grid = self.grid();
-
-        while let Some(Candidate {
-            mut cost,
-            index: parent,
-            ..
-        }) = open_set.pop()
-        {
-            let (pos, &(_, c)) = came_from.get_index(parent).unwrap();
-            if *pos == b {
-                return build_path(parent, &came_from);
-            } else if cost > c {
-                continue; // already have a better path to this cell
-            }
-
-            for pos in grid.neighbouring_tiles(*pos) {
-                match self.cost(pos) {
-                    Some(c) => cost += c * 10, // to match the 10/14 weights in heuristic
-                    None => continue,          // can't path through
-                }
-                let h = heuristic(pos, b);
-
-                let index = match came_from.entry(pos) {
-                    Entry::Vacant(e) => {
-                        let index = e.index();
-                        e.insert((parent, cost));
-                        index
-                    }
-
-                    Entry::Occupied(mut e) => {
-                        if cost >= e.get().1 {
-                            continue;
-                        }
-                        let index = e.index();
-                        e.insert((parent, cost));
-                        index
-                    }
-                };
-
-                open_set.push(Candidate {
-                    estimate: cost + h,
-                    cost,
-                    index,
-                });
-            }
+    while let Some(Candidate {
+        mut cost,
+        index: parent,
+        ..
+    }) = open_set.pop()
+    {
+        let (pos, &(_, c)) = came_from.get_index(parent).unwrap();
+        if *pos == b {
+            return build_path(parent, &came_from);
+        } else if cost > c {
+            continue; // already have a better path to this cell
         }
 
-        Vec::new()
+        for pos in grid.neighbouring_tiles(*pos) {
+            match (cost_fn)(pos) {
+                Some(c) => cost += c * 10, // to match the 10/14 weights in heuristic
+                None => continue,          // can't path through
+            }
+            let h = heuristic(pos, b);
+
+            let index = match came_from.entry(pos) {
+                Entry::Vacant(e) => {
+                    let index = e.index();
+                    e.insert((parent, cost));
+                    index
+                }
+
+                Entry::Occupied(mut e) => {
+                    if cost >= e.get().1 {
+                        continue;
+                    }
+                    let index = e.index();
+                    e.insert((parent, cost));
+                    index
+                }
+            };
+
+            open_set.push(Candidate {
+                estimate: cost + h,
+                cost,
+                index,
+            });
+        }
     }
+
+    Vec::new()
 }
 
 // Approximating octile distance using 10 and 14 for the vertical/horizontal and diagonal costs.

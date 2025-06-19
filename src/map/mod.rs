@@ -1,4 +1,4 @@
-use crate::{Grid, Pos, grid::WeightedGrid, map::map_tile::MapTile, state::State};
+use crate::{Grid, Pos, grid::a_star, map::map_tile::MapTile, state::State};
 use sdl2::rect::Rect;
 use std::{
     cmp::{max, min},
@@ -65,6 +65,12 @@ impl Map {
             self.tiles[Pos::new(x, y)] = FLOOR;
         }
     }
+
+    pub fn a_star(&self, a: Pos, b: Pos) -> Vec<Pos> {
+        a_star(a, b, &self.tiles, |p| {
+            self.tile_defs[self.tiles[p]].path_cost
+        })
+    }
 }
 
 impl Deref for Map {
@@ -78,17 +84,5 @@ impl Deref for Map {
 impl DerefMut for Map {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.tiles
-    }
-}
-
-impl WeightedGrid for Map {
-    type Cell = usize;
-
-    fn grid(&self) -> &Grid<Self::Cell> {
-        &self.tiles
-    }
-
-    fn cost(&self, pos: Pos) -> Option<i32> {
-        self.tile_defs[self.tiles[pos]].path_cost
     }
 }
