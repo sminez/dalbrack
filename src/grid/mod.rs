@@ -1,4 +1,11 @@
-use std::ops::{Add, AddAssign, Index, IndexMut};
+use std::{
+    iter,
+    ops::{Add, AddAssign, Index, IndexMut},
+};
+
+mod astar;
+
+pub use astar::WeightedGrid;
 
 /// A cell position within a [Grid]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -47,6 +54,14 @@ pub struct Grid<T> {
 }
 
 impl<T> Grid<T> {
+    pub fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.cells.is_empty()
+    }
+
     #[inline]
     pub fn idx(&self, x: usize, y: usize) -> usize {
         y * self.w + x
@@ -79,12 +94,35 @@ impl<T> Grid<T> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.cells.len()
-    }
+    pub fn neighbouring_tiles(&self, pos: Pos) -> impl Iterator<Item = Pos> {
+        let offsets = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+            (-1, -1),
+            (-1, 1),
+            (1, -1),
+            (1, 1),
+        ];
+        let mut idx = 0;
 
-    pub fn is_empty(&self) -> bool {
-        self.cells.is_empty()
+        iter::from_fn(move || {
+            loop {
+                if idx == 8 {
+                    break;
+                }
+
+                let (dx, dy) = offsets[idx];
+                idx += 1;
+                let p = Pos::new(pos.x + dx, pos.y + dy);
+                if self.contains_pos(p) {
+                    return Some(p);
+                }
+            }
+
+            None
+        })
     }
 }
 
@@ -129,3 +167,5 @@ impl<T> IndexMut<Pos> for Grid<T> {
         &mut self.cells[idx]
     }
 }
+
+struct AstarCost {}

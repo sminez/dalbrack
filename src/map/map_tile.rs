@@ -8,7 +8,7 @@ pub struct MapTile {
     pub t: Tile,
     /// Additional weight for pathfinding relative to floor tiles.
     /// None == blocked
-    pub path_cost: Option<i8>,
+    pub path_cost: Option<i32>,
     /// Additional cost to move through the cell
     pub move_weight: u8,
     /// Opacity 0.0..=1.0
@@ -19,7 +19,7 @@ impl MapTile {
     pub fn new(
         ident: &str,
         color: &str,
-        path_cost: Option<i8>,
+        path_cost: Option<i32>,
         move_weight: u8,
         opacity: f32,
         ts: &TileSet<'_>,
