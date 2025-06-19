@@ -183,8 +183,8 @@ impl<'a> State<'a> {
         let dxy = self.ui.dxy as i32;
 
         for (_entity, (pos, tile)) in self.world.query::<(&Pos, &Tile)>().iter() {
-            if let Ok(mut q) = self.world.query_one::<&Fov>(self.e_map) {
-                if !q.get().unwrap().points.contains(pos) {
+            if let Some(fov) = self.world.query_one::<&Fov>(self.e_map).unwrap().get() {
+                if !fov.points.contains(pos) {
                     continue;
                 }
             };
