@@ -129,7 +129,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    fn blit_map(&mut self) -> anyhow::Result<()> {
+    pub fn blit_map(&mut self) -> anyhow::Result<()> {
         let (map, fov_and_light_map) = if self
             .world
             .satisfies::<(&Map, &Fov, &LightMap)>(self.e_map)?
@@ -178,7 +178,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    fn blit_tiles(&mut self) -> anyhow::Result<()> {
+    pub fn blit_tiles(&mut self) -> anyhow::Result<()> {
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
 
@@ -197,7 +197,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    fn blit_text(&mut self) -> anyhow::Result<()> {
+    pub fn blit_text(&mut self) -> anyhow::Result<()> {
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
 

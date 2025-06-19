@@ -102,10 +102,10 @@ fn build_path(start: usize, came_from: &IndexMap<Pos, (usize, i32)>) -> Vec<Pos>
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct Candidate {
-    estimate: i32,
-    cost: i32,
-    index: usize,
+pub(super) struct Candidate {
+    pub(super) estimate: i32,
+    pub(super) cost: i32,
+    pub(super) index: usize,
 }
 
 impl Ord for Candidate {

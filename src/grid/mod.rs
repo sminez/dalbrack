@@ -4,8 +4,10 @@ use std::{
 };
 
 mod astar;
+mod dijkstra_map;
 
 pub use astar::a_star;
+pub use dijkstra_map::dijkstra_map;
 
 /// A cell position within a [Grid]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

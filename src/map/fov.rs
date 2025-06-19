@@ -4,7 +4,7 @@
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
 //!   https://www.roguebasin.com/index.php?title=Discussion:Field_of_Vision
 //!   https://www.roguebasin.com/index.php/Restrictive_Precise_Angle_Shadowcasting
-use crate::{Pos, map::Map};
+use crate::{Pos, map::Map, ui::blend};
 use sdl2::pixels::Color;
 use std::collections::{HashMap, HashSet};
 
@@ -335,43 +335,4 @@ impl Iterator for OctantCells {
 
         Some((Pos::new(a, b), angle))
     }
-}
-
-fn blend(color1: Color, color2: Color, perc: f32) -> Color {
-    let (c1, m1, y1, k1) = to_cmyk(color1);
-    let (c2, m2, y2, k2) = to_cmyk(color2);
-
-    from_cmyk(
-        c1 * perc + c2 * (1.0 - perc),
-        m1 * perc + m2 * (1.0 - perc),
-        y1 * perc + y2 * (1.0 - perc),
-        k1 * perc + k2 * (1.0 - perc),
-    )
-}
-
-fn to_cmyk(color: Color) -> (f32, f32, f32, f32) {
-    let mut c = 1.0 - (color.r as f32 / 255.0);
-    let mut m = 1.0 - (color.g as f32 / 255.0);
-    let mut y = 1.0 - (color.b as f32 / 255.0);
-
-    let mut k = if c < m { c } else { m };
-    k = if k < y { k } else { y };
-
-    c = (c - k) / (1.0 - k);
-    m = (m - k) / (1.0 - k);
-    y = (y - k) / (1.0 - k);
-
-    (c, m, y, k)
-}
-
-fn from_cmyk(c: f32, m: f32, y: f32, k: f32) -> Color {
-    let mut r = c * (1.0 - k) + k;
-    let mut g = m * (1.0 - k) + k;
-    let mut b = y * (1.0 - k) + k;
-
-    r = (1.0 - r) * 255.0 + 0.5;
-    g = (1.0 - g) * 255.0 + 0.5;
-    b = (1.0 - b) * 255.0 + 0.5;
-
-    Color::RGB(r as u8, g as u8, b as u8)
 }
