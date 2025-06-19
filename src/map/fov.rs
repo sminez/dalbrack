@@ -13,7 +13,7 @@ const DIST_SCALE: f32 = 0.15;
 /// Exponent to correct with when r^2 drops below 1.0
 const EXP_FALLOFF: f32 = 0.11;
 /// % of original color to use when blending light levels
-const BLEND_PERC: f32 = 0.6;
+const BLEND_PERC: f32 = 0.5;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FovRange(pub u32);
@@ -24,15 +24,12 @@ pub struct Fov {
 
 impl Fov {
     pub fn new(map: &Map, from: Pos, FovRange(range): FovRange) -> Self {
-        let points: HashSet<Pos> = RPACaster::new(
-            from,
-            range as i32,
-            0.33,
-            Restrictiveness::CenterPlus,
-            |pos| map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity),
-        )
-        .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
-        .collect();
+        let points: HashSet<Pos> =
+            RPACaster::new(from, range as i32, 0.33, Vis::CenterPlus, |pos| {
+                map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
+            })
+            .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
+            .collect();
 
         Fov { points }
     }
@@ -74,7 +71,7 @@ impl LightMap {
 
     pub fn new(map: &Map, from: Pos, fov: &Fov, LightSource { range, color }: LightSource) -> Self {
         let points: HashMap<Pos, Color> =
-            RPACaster::new(from, range as i32, 0.33, Restrictiveness::Any, |pos| {
+            RPACaster::new(from, range as i32, 0.33, Vis::Any, |pos| {
                 map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
             })
             .filter(|(p, opacity)| fov.points.contains(p) && *opacity < 1.0)
@@ -106,13 +103,13 @@ impl LightMap {
     }
 }
 
-enum Restrictiveness {
+enum Vis {
     Any,
     CenterPlus,
     // All,
 }
 
-impl Restrictiveness {
+impl Vis {
     fn is_visible(&self, v_near: bool, v_center: bool, v_far: bool) -> bool {
         match self {
             Self::Any => v_near || v_center || v_far,
@@ -129,7 +126,7 @@ where
     F: Fn(Pos) -> Option<f32>,
 {
     /// How restrictive to be when classifying a tile as visible
-    restrictiveness: Restrictiveness,
+    vis: Vis,
     /// Mapping from position to opacity
     get_opacity: F,
     /// location of obstructions encountered so far in the current octant and their opacity
@@ -150,17 +147,11 @@ impl<F> RPACaster<F>
 where
     F: Fn(Pos) -> Option<f32>,
 {
-    fn new(
-        from: Pos,
-        radius: i32,
-        smoothing: f32,
-        restrictiveness: Restrictiveness,
-        get_opacity: F,
-    ) -> Self {
+    fn new(from: Pos, radius: i32, smoothing: f32, restrictiveness: Vis, get_opacity: F) -> Self {
         let r_cutoff = radius as f32 + smoothing;
 
         Self {
-            restrictiveness,
+            vis: restrictiveness,
             get_opacity,
             obstructions: Vec::new(),
             cells: OctantCells::new(radius, r_cutoff, 0),
@@ -222,7 +213,7 @@ where
                 opacity = opacity.max(0.5 * o_opacity);
             }
 
-            if !self.restrictiveness.is_visible(v_near, v_center, v_far) {
+            if !self.vis.is_visible(v_near, v_center, v_far) {
                 opacity = opacity.max(o_opacity);
             }
 
@@ -240,7 +231,7 @@ where
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 struct Angle {
     near: f32,
     center: f32,
