@@ -24,9 +24,13 @@ pub struct Fov {
 
 impl Fov {
     pub fn new(map: &Map, from: Pos, FovRange(range): FovRange) -> Self {
-        let points: HashSet<Pos> = RPACaster::new(from, range as i32, 0.33, |pos| {
-            map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
-        })
+        let points: HashSet<Pos> = RPACaster::new(
+            from,
+            range as i32,
+            0.33,
+            Restrictiveness::CenterPlus,
+            |pos| map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity),
+        )
         .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
         .collect();
 
@@ -69,27 +73,28 @@ impl LightMap {
     }
 
     pub fn new(map: &Map, from: Pos, fov: &Fov, LightSource { range, color }: LightSource) -> Self {
-        let points: HashMap<Pos, Color> = RPACaster::new(from, range as i32, 0.33, |pos| {
-            map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
-        })
-        .filter(|(p, opacity)| fov.points.contains(p) && *opacity < 1.0)
-        .map(|(pos, opacity)| {
-            let d = from.fdist(pos);
-            let mut falloff = DIST_SCALE * d.powi(2);
-            if falloff < 1.0 {
-                falloff = falloff.powf(EXP_FALLOFF);
-            }
+        let points: HashMap<Pos, Color> =
+            RPACaster::new(from, range as i32, 0.33, Restrictiveness::Any, |pos| {
+                map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
+            })
+            .filter(|(p, opacity)| fov.points.contains(p) && *opacity < 1.0)
+            .map(|(pos, opacity)| {
+                let d = from.fdist(pos);
+                let mut falloff = DIST_SCALE * d.powi(2);
+                if falloff < 1.0 {
+                    falloff = falloff.powf(EXP_FALLOFF);
+                }
 
-            let transparency = 1.0 - opacity;
-            let cell_color = Color::RGB(
-                (color.r as f32 * transparency / falloff) as u8,
-                (color.g as f32 * transparency / falloff) as u8,
-                (color.b as f32 * transparency / falloff) as u8,
-            );
+                let transparency = 1.0 - opacity;
+                let cell_color = Color::RGB(
+                    (color.r as f32 * transparency / falloff) as u8,
+                    (color.g as f32 * transparency / falloff) as u8,
+                    (color.b as f32 * transparency / falloff) as u8,
+                );
 
-            (pos, cell_color)
-        })
-        .collect();
+                (pos, cell_color)
+            })
+            .collect();
 
         LightMap { points }
     }
@@ -101,12 +106,30 @@ impl LightMap {
     }
 }
 
+enum Restrictiveness {
+    Any,
+    CenterPlus,
+    // All,
+}
+
+impl Restrictiveness {
+    fn is_visible(&self, v_near: bool, v_center: bool, v_far: bool) -> bool {
+        match self {
+            Self::Any => v_near || v_center || v_far,
+            Self::CenterPlus => v_center && (v_near || v_far),
+            // Self::All => v_near && v_center && v_far,
+        }
+    }
+}
+
 /// Restrictive Precise Angle Shadowcasting
 /// https://www.roguebasin.com/index.php/Restrictive_Precise_Angle_Shadowcasting
 struct RPACaster<F>
 where
     F: Fn(Pos) -> Option<f32>,
 {
+    /// How restrictive to be when classifying a tile as visible
+    restrictiveness: Restrictiveness,
     /// Mapping from position to opacity
     get_opacity: F,
     /// location of obstructions encountered so far in the current octant and their opacity
@@ -127,10 +150,17 @@ impl<F> RPACaster<F>
 where
     F: Fn(Pos) -> Option<f32>,
 {
-    fn new(from: Pos, radius: i32, smoothing: f32, get_opacity: F) -> Self {
+    fn new(
+        from: Pos,
+        radius: i32,
+        smoothing: f32,
+        restrictiveness: Restrictiveness,
+        get_opacity: F,
+    ) -> Self {
         let r_cutoff = radius as f32 + smoothing;
 
         Self {
+            restrictiveness,
             get_opacity,
             obstructions: Vec::new(),
             cells: OctantCells::new(radius, r_cutoff, 0),
@@ -192,9 +222,7 @@ where
                 opacity = opacity.max(0.5 * o_opacity);
             }
 
-            // This is tunable
-            let visible = v_center && (v_near || v_far);
-            if !visible {
+            if !self.restrictiveness.is_visible(v_near, v_center, v_far) {
                 opacity = opacity.max(o_opacity);
             }
 
@@ -239,8 +267,11 @@ const OCTANTS: [(i32, i32, bool); 8] = [
 
 /// Iterator over the canidate cells offsets for FOV for a single octant centered at (0, 0).
 struct OctantCells {
+    // x coordinate transform for the current quadrant
     quad_x: i32,
+    // y coordinate transform for the current quadrant
     quad_y: i32,
+    // whether or not this is the upper octant in the current quadrant
     is_vert: bool,
     /// Radius to include cells up to
     radius: i32,
