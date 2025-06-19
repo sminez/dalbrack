@@ -1,3 +1,5 @@
+// https://en.wikipedia.org/wiki/A*_search_algorithm
+// https://www.redblobgames.com/pathfinding/
 use crate::grid::{Grid, Pos};
 use indexmap::{IndexMap, map::Entry};
 use std::{

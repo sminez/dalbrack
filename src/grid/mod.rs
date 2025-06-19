@@ -96,14 +96,14 @@ impl<T> Grid<T> {
 
     pub fn neighbouring_tiles(&self, pos: Pos) -> impl Iterator<Item = Pos> {
         let offsets = [
-            (-1, -1),
-            (-1, 1),
-            (1, -1),
-            (1, 1),
             (-1, 0),
             (1, 0),
             (0, -1),
             (0, 1),
+            (-1, -1),
+            (-1, 1),
+            (1, -1),
+            (1, 1),
         ];
         let mut idx = 0;
 
