@@ -1,5 +1,5 @@
 use std::{
-    iter,
+    iter::from_fn,
     ops::{Add, AddAssign, Index, IndexMut},
 };
 
@@ -96,18 +96,18 @@ impl<T> Grid<T> {
 
     pub fn neighbouring_tiles(&self, pos: Pos) -> impl Iterator<Item = Pos> {
         let offsets = [
-            (-1, 0),
-            (1, 0),
-            (0, -1),
-            (0, 1),
             (-1, -1),
             (-1, 1),
             (1, -1),
             (1, 1),
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
         ];
         let mut idx = 0;
 
-        iter::from_fn(move || {
+        from_fn(move || {
             loop {
                 if idx == 8 {
                     break;
@@ -167,5 +167,3 @@ impl<T> IndexMut<Pos> for Grid<T> {
         &mut self.cells[idx]
     }
 }
-
-struct AstarCost {}

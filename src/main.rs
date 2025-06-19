@@ -1,5 +1,6 @@
 use dalbrack::{
     Pos, TITLE,
+    grid::WeightedGrid,
     map::{
         Map,
         builders::{BspDungeon, BuildMap},
@@ -7,11 +8,13 @@ use dalbrack::{
     },
     player::Player,
     state::State,
-    tileset::TileSet,
 };
 use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
-use std::time::Instant;
+use std::{
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 const DXY: u32 = 25;
 const W: i32 = 60;
@@ -49,14 +52,6 @@ pub fn main() -> anyhow::Result<()> {
                 repeat: false,
                 ..
             } => match k {
-                Keycode::Num1 => state.ts = TileSet::df_classic()?,
-                Keycode::Num2 => state.ts = TileSet::df_buddy()?,
-                Keycode::Num3 => state.ts = TileSet::df_sb()?,
-                Keycode::Num4 => state.ts = TileSet::df_nordic()?,
-                Keycode::Num5 => state.ts = TileSet::df_rde()?,
-                Keycode::Num6 => state.ts = TileSet::df_yayo()?,
-                Keycode::Num7 => state.ts = TileSet::df_kruggsmash()?,
-
                 Keycode::L | Keycode::Right => Player::try_move(1, 0, &mut state),
                 Keycode::H | Keycode::Left => Player::try_move(-1, 0, &mut state),
                 Keycode::K | Keycode::Up => Player::try_move(0, -1, &mut state),
@@ -123,7 +118,7 @@ pub fn main() -> anyhow::Result<()> {
             }
 
             Event::MouseButtonDown {
-                mouse_btn: MouseButton::Right,
+                mouse_btn: MouseButton::Middle,
                 x,
                 y,
                 ..
@@ -131,6 +126,28 @@ pub fn main() -> anyhow::Result<()> {
                 let pos = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
                 let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
                 map.tiles[pos] = if map.tiles[pos] == 0 { 1 } else { 0 };
+            }
+
+            Event::MouseButtonDown {
+                mouse_btn: MouseButton::Right,
+                x,
+                y,
+                ..
+            } => {
+                let target = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
+                let from = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
+                let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
+                let path = map.a_star(from, target);
+
+                for new_pos in path.into_iter() {
+                    let pos = state
+                        .world
+                        .query_one_mut::<&mut Pos>(state.e_player)
+                        .unwrap();
+                    *pos = new_pos;
+                    state.tick()?;
+                    sleep(Duration::from_millis(50));
+                }
             }
 
             _ => need_render = false,

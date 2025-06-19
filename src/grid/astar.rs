@@ -17,7 +17,7 @@ pub trait WeightedGrid {
     /// If no path can be found then the resulting vec will be empty.
     fn a_star(&self, a: Pos, b: Pos) -> Vec<Pos> {
         let mut came_from = IndexMap::new();
-        came_from.insert(a, (usize::MAX, 0));
+        came_from.insert(a, (usize::MAX, 0)); // parent and cost
 
         let mut open_set = BinaryHeap::new();
         open_set.push(Candidate {
@@ -25,6 +25,8 @@ pub trait WeightedGrid {
             cost: 0,
             index: 0,
         });
+
+        let grid = self.grid();
 
         while let Some(Candidate {
             mut cost,
@@ -39,10 +41,10 @@ pub trait WeightedGrid {
                 continue; // already have a better path to this cell
             }
 
-            for pos in self.grid().neighbouring_tiles(*pos) {
+            for pos in grid.neighbouring_tiles(*pos) {
                 match self.cost(pos) {
-                    Some(c) => cost += c,
-                    None => continue, // can't path through
+                    Some(c) => cost += c * 10, // to match the 10/14 weights in heuristic
+                    None => continue,          // can't path through
                 }
                 let h = heuristic(pos, b);
 
@@ -54,7 +56,7 @@ pub trait WeightedGrid {
                     }
 
                     Entry::Occupied(mut e) => {
-                        if e.get().1 <= cost {
+                        if cost >= e.get().1 {
                             continue;
                         }
                         let index = e.index();
@@ -75,8 +77,7 @@ pub trait WeightedGrid {
     }
 }
 
-// Approximating octile distance using 10 and 14 for the vertical/horizontal and diagonal costs and
-// then dividing through by 10 to scale the result to match the tile costs.
+// Approximating octile distance using 10 and 14 for the vertical/horizontal and diagonal costs.
 //
 // Here we compute the number of steps you take if you can’t take a diagonal, then subtract the
 // steps you save by using the diagonal. There are min(dx, dy) diagonal steps, and each one costs
@@ -87,7 +88,7 @@ fn heuristic(p: Pos, to: Pos) -> i32 {
     let (dx, dy) = ((p.x - to.x).abs(), (p.y - to.y).abs());
 
     // 10 = d1, 4 = (d2-d1)
-    (10 * max(dx, dy) + 4 * min(dx, dy)) / 10
+    10 * max(dx, dy) + 4 * min(dx, dy)
 }
 
 fn build_path(start: usize, came_from: &IndexMap<Pos, (usize, i32)>) -> Vec<Pos> {
@@ -104,31 +105,26 @@ fn build_path(start: usize, came_from: &IndexMap<Pos, (usize, i32)>) -> Vec<Pos>
     path
 }
 
+#[derive(Debug, PartialEq, Eq)]
 struct Candidate {
     estimate: i32,
     cost: i32,
     index: usize,
 }
 
-impl PartialEq for Candidate {
-    fn eq(&self, other: &Self) -> bool {
-        self.estimate.eq(&other.estimate) && self.cost.eq(&other.cost)
+impl Ord for Candidate {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // prefer smallest estimated cost where possible, breaking ties with the highest true cost
+        // as that can indicate that we are already closer to the target
+        match other.estimate.cmp(&self.estimate) {
+            Ordering::Equal => self.cost.cmp(&other.cost),
+            o => o,
+        }
     }
 }
-
-impl Eq for Candidate {}
 
 impl PartialOrd for Candidate {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-impl Ord for Candidate {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.estimate.cmp(&other.estimate) {
-            Ordering::Equal => self.cost.cmp(&other.cost),
-            o => o,
-        }
     }
 }
