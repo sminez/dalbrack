@@ -1,4 +1,4 @@
-use dalbrack::{data_files::parse_cp437_prefab, state::State, tileset::TileSet};
+use dalbrack::{TITLE, data_files::parse_cp437_prefab, state::State, tileset::TileSet};
 use sdl2::{event::Event, keyboard::Keycode};
 use std::env::args;
 
@@ -11,7 +11,7 @@ pub fn main() -> anyhow::Result<()> {
         None => "data/prefabs/room.prefab".to_string(),
     };
 
-    let mut state = State::init(1280, 1000, 50, "Risky Endevours")?;
+    let mut state = State::init(1280, 1000, 50, TITLE)?;
     update(&path, &mut state)?;
 
     loop {

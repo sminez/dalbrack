@@ -1,11 +1,11 @@
-use dalbrack::{Pos, state::State, tileset::TileSet};
+use dalbrack::{Pos, TITLE, state::State, tileset::TileSet};
 use sdl2::{event::Event, keyboard::Keycode};
 
 const X: i32 = 40;
 const DIM: u32 = X as u32 * 16;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DIM, DIM, X as u32, "Risky Endevours")?;
+    let mut state = State::init(DIM, DIM, X as u32, TITLE)?;
 
     for y in 0..16 {
         for x in 0..16 {

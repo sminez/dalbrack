@@ -1,5 +1,5 @@
 use dalbrack::{
-    Pos,
+    Pos, TITLE,
     map::{
         Map,
         builders::{BspDungeon, BuildMap},
@@ -18,7 +18,7 @@ const W: i32 = 60;
 const H: i32 = 40;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, "Risky Endevours")?;
+    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
     let (pos, map) = BspDungeon.new_map(W as usize, H as usize, &state);
     state.set_map(map);
 

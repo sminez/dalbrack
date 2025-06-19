@@ -1,9 +1,9 @@
-use dalbrack::{Pos, state::State, tileset::TileSet};
+use dalbrack::{Pos, TITLE, state::State, tileset::TileSet};
 use hecs::Entity;
 use sdl2::{event::Event, keyboard::Keycode};
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(1080, 1000, 50, "Risky Endevours")?;
+    let mut state = State::init(1080, 1000, 50, TITLE)?;
     state.ts = TileSet::df_rde()?;
 
     let mut col: u16 = 0;

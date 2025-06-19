@@ -8,3 +8,5 @@ pub mod tileset;
 pub mod ui;
 
 pub use grid::{Grid, Pos};
+
+pub const TITLE: &str = "Dalbrack";

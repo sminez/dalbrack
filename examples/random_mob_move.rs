@@ -1,5 +1,5 @@
 use dalbrack::{
-    Pos,
+    Pos, TITLE,
     mob::{Mob, RandomMoveAI},
     state::State,
     tileset::{Tile, TileSet},
@@ -15,7 +15,7 @@ struct Player;
 struct Ping;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, "Risky Endevours")?;
+    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
 
     let dorf1 = Mob::new(":)", "bright_blue", 3, 5, &state);
     let dorf2 = Mob::new(":)", "bright_yellow", 15, 12, &state);

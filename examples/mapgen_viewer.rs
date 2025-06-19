@@ -1,4 +1,5 @@
 use dalbrack::{
+    TITLE,
     map::builders::{BspDungeon, BuildMap},
     state::State,
     tileset::TileSet,
@@ -12,7 +13,7 @@ const H: i32 = 30;
 const FRAME_LEN: u128 = 100;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, "Risky Endevours")?;
+    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
     let mut maps = BspDungeon.trace_build(W as usize, H as usize, &state);
     maps.reverse();
     if let Some(map) = maps.pop() {
