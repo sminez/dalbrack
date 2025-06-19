@@ -13,7 +13,7 @@ use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 use std::time::Instant;
 
-const DXY: u32 = 35;
+const DXY: u32 = 25;
 const W: i32 = 60;
 const H: i32 = 40;
 

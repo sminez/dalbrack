@@ -2,6 +2,8 @@
 //!   https://www.roguebasin.com/index.php/FOV_using_recursive_shadowcasting
 //!   https://www.roguebasin.com/index.php/Line_of_Sight_-_Tobias_Downer
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
+//!   https://www.roguebasin.com/index.php?title=Discussion:Field_of_Vision
+//!   https://www.roguebasin.com/index.php/Restrictive_Precise_Angle_Shadowcasting
 use crate::{Pos, map::Map};
 use sdl2::pixels::Color;
 use std::collections::{HashMap, HashSet};
@@ -15,7 +17,6 @@ const MULTIPLIERS: [[i32; 8]; 4] = [
 ];
 /// Scaling factor for inverse-square falloff
 const DIST_SCALE: f32 = 0.15;
-// const DIST_SCALE: f32 = 0.15;
 /// Exponent to correct with when r^2 drops below 1.0
 const EXP_FALLOFF: f32 = 0.11;
 /// % of original color to use when blending light levels
@@ -224,7 +225,7 @@ where
                     self.builder.push(pos, self.from);
                 }
 
-                let cur_blocked = self.map.tile_defs[self.map.tiles[idx]].block_sight;
+                let cur_blocked = self.map.tile_defs[self.map.tiles[idx]].opacity > 0.0;
                 if prev_blocked {
                     if cur_blocked {
                         // still scanning a run of blocking cells

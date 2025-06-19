@@ -15,7 +15,7 @@ impl Player {
 
         for (_entity, (_player, pos)) in state.world.query::<(&Player, &mut Pos)>().iter() {
             let p_new = Pos::new(pos.x + dx, pos.y + dy);
-            if map.tile_at(p_new).block_move {
+            if map.tile_at(p_new).path_cost.is_none() {
                 return;
             }
             *pos = p_new;
