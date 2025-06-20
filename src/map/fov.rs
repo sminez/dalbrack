@@ -14,28 +14,43 @@ const DIST_SCALE: f32 = 0.15;
 const EXP_FALLOFF: f32 = 0.11;
 /// % of original color to use when blending light levels
 const BLEND_PERC: f32 = 0.5;
+/// Smoothing factor added to radius to make the edge points "nicer"
+const R_SMOOTHING: f32 = 0.33;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FovRange(pub u32);
 
 pub struct Fov {
     pub points: HashSet<Pos>,
+    pub from: Pos,
+    pub r_cutoff: f32,
 }
 
 impl Fov {
     pub fn new(map: &Map, from: Pos, FovRange(range): FovRange) -> Self {
+        let r_cutoff = range as f32 + R_SMOOTHING;
         let points: HashSet<Pos> =
-            RPACaster::new(from, range as i32, 0.33, Vis::CenterPlus, |pos| {
+            RPACaster::new(from, range as i32, r_cutoff, Vis::CenterPlus, |pos| {
                 map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
             })
             .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
             .collect();
 
-        Fov { points }
+        Fov {
+            points,
+            from,
+            r_cutoff,
+        }
+    }
+
+    /// Whether or not there is a possible intersection between a light source and the full FOV
+    /// radius. This is only used as a heuristic to avoid computing light map contributions from
+    /// sources that are definitely out of range.
+    fn could_contain(&self, p: Pos, r: f32) -> bool {
+        self.from.fdist(p) <= self.r_cutoff + r
     }
 }
 
-/// TODO: the falloff / power should be part of this
 #[derive(Debug, Clone, Copy)]
 pub struct LightSource {
     pub range: u32,
@@ -55,6 +70,10 @@ impl LightMap {
         let mut points = HashMap::with_capacity(fov.points.len());
 
         for (from, source) in sources {
+            if !fov.could_contain(*from, source.range as f32 + R_SMOOTHING) {
+                continue;
+            }
+
             let lm = Self::new(map, *from, fov, *source);
             for (p, color) in lm.points.into_iter() {
                 points
@@ -70,8 +89,9 @@ impl LightMap {
     }
 
     pub fn new(map: &Map, from: Pos, fov: &Fov, LightSource { range, color }: LightSource) -> Self {
+        let r_cutoff = range as f32 + R_SMOOTHING;
         let points: HashMap<Pos, Color> =
-            RPACaster::new(from, range as i32, 0.33, Vis::CenterPlus, |pos| {
+            RPACaster::new(from, range as i32, r_cutoff, Vis::CenterPlus, |pos| {
                 map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
             })
             .filter(|(p, opacity)| fov.points.contains(p) && *opacity < 1.0)
@@ -148,9 +168,7 @@ impl<F> RPACaster<F>
 where
     F: Fn(Pos) -> Option<f32>,
 {
-    fn new(from: Pos, radius: i32, smoothing: f32, restrictiveness: Vis, get_opacity: F) -> Self {
-        let r_cutoff = radius as f32 + smoothing;
-
+    fn new(from: Pos, radius: i32, r_cutoff: f32, restrictiveness: Vis, get_opacity: F) -> Self {
         Self {
             vis: restrictiveness,
             get_opacity,
