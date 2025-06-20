@@ -139,11 +139,7 @@ pub fn main() -> anyhow::Result<()> {
                 let path = map.a_star(from, target);
 
                 for new_pos in path.into_iter() {
-                    let pos = state
-                        .world
-                        .query_one_mut::<&mut Pos>(state.e_player)
-                        .unwrap();
-                    *pos = new_pos;
+                    Player::try_move_pos(new_pos, &mut state);
                     state.tick()?;
                     sleep(Duration::from_millis(50));
                 }
