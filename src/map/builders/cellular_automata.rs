@@ -15,14 +15,14 @@ const P_INITIAL_FLOOR: u16 = 55;
 #[derive(Debug)]
 pub struct CACave {
     iterations: usize,
-    rule: CARule,
+    rule: fn(Pos, &Map) -> bool,
 }
 
 impl Default for CACave {
     fn default() -> Self {
         Self {
             iterations: 15,
-            rule: CARule::rogue_basin(),
+            rule: rogue_basin,
         }
     }
 }
@@ -55,12 +55,8 @@ impl BuildMap for CACave {
                 for y in 1..map_h - 1 {
                     for x in 1..map_w - 1 {
                         let p = Pos::new(x as i32, y as i32);
-                        let on = map[p] == FLOOR;
-                        let n = map
-                            .neighbouring_tiles(p)
-                            .filter(|q| map[*q] == WALL)
-                            .count();
-                        new[p] = if self.rule.is_on(n, on) { FLOOR } else { WALL };
+                        let on = (self.rule)(p, &map);
+                        new[p] = if on { FLOOR } else { WALL };
                     }
                 }
 
@@ -79,63 +75,38 @@ impl BuildMap for CACave {
     }
 }
 
-/// Specify cellular automata rules in terms of a bitmask defining whether or not the cell is alive
-/// based on the number of neighbours it has. The bitmask is reversed before being stored so it can
-/// be written with the least significant bit on the left.
 macro_rules! rule {
-    ($on_mask:expr, $off_mask:expr, $name:ident) => {
-        impl CARule {
-            pub fn $name() -> Self {
-                Self {
-                    on_mask: ($on_mask as u16).reverse_bits(),
-                    off_mask: ($off_mask as u16).reverse_bits(),
-                }
-            }
+    ($name:ident, $impl:expr) => {
+        pub fn $name(pos: Pos, map: &Map) -> bool {
+            $impl(pos, map)
         }
 
         impl CACave {
             pub fn $name(iterations: usize) -> Self {
                 Self {
                     iterations,
-                    rule: CARule::$name(),
+                    rule: $name,
                 }
             }
         }
     };
 }
 
-#[derive(Debug)]
-pub struct CARule {
-    on_mask: u16,
-    off_mask: u16,
-}
+rule!(simple, |pos: Pos, map: &Map| {
+    let n = map
+        .neighbouring_tiles(pos)
+        .filter(|q| map[*q] == WALL)
+        .count();
 
-impl CARule {
-    #[inline]
-    pub fn is_on(&self, n_neighbours: usize, on_now: bool) -> bool {
-        let mask = if on_now { self.on_mask } else { self.off_mask };
+    [1, 2, 3, 4].contains(&n)
+});
 
-        (mask >> n_neighbours) & 1 == 1
-    }
-}
+rule!(rogue_basin, |pos: Pos, map: &Map| {
+    let on = map[pos] == FLOOR;
+    let n = map
+        .neighbouring_tiles(pos)
+        .filter(|q| map[*q] == WALL)
+        .count();
 
-rule!(0b0111100000000000, 0b0111100000000000, simple);
-rule!(0b0000011110000000, 0b0000111110000000, rogue_basin);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn is_alive_works() {
-        let rule = CARule::simple();
-
-        for n in [1, 2, 3, 4] {
-            assert!(rule.is_on(n, true), "{n} should be alive");
-        }
-
-        for n in [0, 5, 6, 7, 8] {
-            assert!(!rule.is_on(n, true), "{n} should not be alive");
-        }
-    }
-}
+    (on && n >= 5) || (!on && n >= 4)
+});
