@@ -2,7 +2,7 @@ use dalbrack::{
     Pos, TITLE,
     map::{
         Map,
-        builders::{BuildMap, CACave},
+        builders::{BuildMap, CellularAutomata},
         fov::{FovRange, LightSource},
     },
     player::Player,
@@ -22,7 +22,7 @@ const H: i32 = 40;
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
 
-    let mut builder = CACave::simple(15);
+    let mut builder = CellularAutomata::rogue_basin();
     // let mut builder = BspDungeon;
 
     let (pos, map) = builder.new_map(W as usize, H as usize, &state);

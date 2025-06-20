@@ -13,3 +13,4 @@
 ### Mapgen
 - https://web.archive.org/web/20131025132021/http://kuoi.org/~kamikaze/GameDesign/art07_rogue_dungeon.php
 - https://www.astrolog.org/labyrnth/algrithm.htm
+- https://en.wikipedia.org/wiki/Turmite

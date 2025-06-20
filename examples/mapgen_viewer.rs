@@ -1,6 +1,6 @@
 use dalbrack::{
     TITLE,
-    map::builders::{BspDungeon, BuildMap, CACave, SimpleDungeon},
+    map::builders::{BspDungeon, BuildMap, CellularAutomata},
     state::State,
 };
 use sdl2::{event::Event, keyboard::Keycode};
@@ -21,7 +21,7 @@ macro_rules! set {
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let mut builder = Box::new(CACave::default()) as Box<dyn BuildMap>;
+    let mut builder = Box::new(CellularAutomata::default()) as Box<dyn BuildMap>;
     let mut maps = builder.trace_build(W as usize, H as usize, &state);
     maps.reverse();
 
@@ -45,10 +45,15 @@ pub fn main() -> anyhow::Result<()> {
                     repeat: false,
                     ..
                 } => match k {
-                    Keycode::Num1 => set!(builder, SimpleDungeon, maps, state),
-                    Keycode::Num2 => set!(builder, BspDungeon, maps, state),
-                    Keycode::Num3 => set!(builder, CACave::simple(15), maps, state),
-                    Keycode::Num4 => set!(builder, CACave::rogue_basin(15), maps, state),
+                    Keycode::Num1 => set!(builder, BspDungeon, maps, state),
+                    Keycode::Num2 => set!(builder, CellularAutomata::simple(), maps, state),
+                    Keycode::Num3 => set!(builder, CellularAutomata::rogue_basin(), maps, state),
+                    Keycode::Num4 => set!(builder, CellularAutomata::diamoeba(), maps, state),
+                    Keycode::Num5 => set!(builder, CellularAutomata::invertamaze(), maps, state),
+                    Keycode::Num6 => set!(builder, CellularAutomata::walled_cities(), maps, state),
+                    Keycode::Num7 => set!(builder, CellularAutomata::corrosion(), maps, state),
+                    Keycode::Num8 => set!(builder, CellularAutomata::ice_balls(), maps, state),
+                    Keycode::Num9 => set!(builder, CellularAutomata::coagulations(), maps, state),
 
                     Keycode::R => {
                         maps = builder.trace_build(W as usize, H as usize, &state);

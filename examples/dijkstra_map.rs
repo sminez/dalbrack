@@ -3,7 +3,7 @@ use dalbrack::{
     grid::dijkstra_map,
     map::{
         Map,
-        builders::{BspDungeon, BuildMap, CACave, SimpleDungeon},
+        builders::{BspDungeon, BuildMap, CellularAutomata},
     },
     player::Player,
     state::State,
@@ -32,7 +32,7 @@ macro_rules! set {
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let mut builder = Box::new(CACave::default()) as Box<dyn BuildMap>;
+    let mut builder = Box::new(CellularAutomata::default()) as Box<dyn BuildMap>;
     let (pos, mut map) = builder.new_map(W as usize, H as usize, &state);
     map.explore_all();
     state.set_map(map);
@@ -53,10 +53,12 @@ pub fn main() -> anyhow::Result<()> {
                 repeat: false,
                 ..
             } => match k {
-                Keycode::Num1 => set!(builder, SimpleDungeon, state),
-                Keycode::Num2 => set!(builder, BspDungeon, state),
-                Keycode::Num3 => set!(builder, CACave::simple(15), state),
-                Keycode::Num4 => set!(builder, CACave::rogue_basin(15), state),
+                Keycode::Num1 => set!(builder, BspDungeon, state),
+                Keycode::Num2 => set!(builder, CellularAutomata::simple(), state),
+                Keycode::Num3 => set!(builder, CellularAutomata::rogue_basin(), state),
+                Keycode::Num4 => set!(builder, CellularAutomata::diamoeba(), state),
+                Keycode::Num5 => set!(builder, CellularAutomata::invertamaze(), state),
+                Keycode::Num6 => set!(builder, CellularAutomata::mazectric(), state),
 
                 Keycode::L | Keycode::Right => Player::try_move(1, 0, &mut state),
                 Keycode::H | Keycode::Left => Player::try_move(-1, 0, &mut state),
