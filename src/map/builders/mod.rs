@@ -1,12 +1,12 @@
 //! Map building algorithms
 use crate::{Pos, map::Map, state::State};
-use rand::{Rng, rngs::ThreadRng};
-use sdl2::rect::Rect;
 
 mod bsp;
+mod cellular_automata;
 mod simple_dungeon;
 
 pub use bsp::BspDungeon;
+pub use cellular_automata::{CACave, CARule};
 pub use simple_dungeon::SimpleDungeon;
 
 pub trait BuildMap {
@@ -55,22 +55,4 @@ impl Snapshots {
             self.inner.push(map.clone());
         }
     }
-}
-
-fn random_point(r: Rect, offset: i32, rng: &mut ThreadRng) -> (i32, i32) {
-    let rx = (r.x + offset)..(r.x + r.w - offset);
-    let ry = (r.y + offset)..(r.y + r.h - offset);
-
-    let x = if rx.is_empty() {
-        r.x
-    } else {
-        rng.random_range(rx)
-    };
-    let y = if ry.is_empty() {
-        r.y
-    } else {
-        rng.random_range(ry)
-    };
-
-    (x, y)
 }

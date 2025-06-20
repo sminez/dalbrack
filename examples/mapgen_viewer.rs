@@ -1,21 +1,30 @@
 use dalbrack::{
     TITLE,
-    map::builders::{BspDungeon, BuildMap},
+    map::builders::{BspDungeon, BuildMap, CACave, SimpleDungeon},
     state::State,
-    tileset::TileSet,
 };
 use sdl2::{event::Event, keyboard::Keycode};
 use std::time::Instant;
 
-const DXY: u32 = 30;
-const W: i32 = 50;
-const H: i32 = 30;
+const DXY: u32 = 25;
+const W: i32 = 60;
+const H: i32 = 40;
 const FRAME_LEN: u128 = 100;
+
+macro_rules! set {
+    ($builder:expr, $new:expr, $maps:expr, $state:expr) => {{
+        $builder = Box::new($new);
+        $maps = $builder.trace_build(W as usize, H as usize, &$state);
+        $maps.reverse();
+    }};
+}
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let mut maps = BspDungeon.trace_build(W as usize, H as usize, &state);
+    let mut builder = Box::new(CACave::default()) as Box<dyn BuildMap>;
+    let mut maps = builder.trace_build(W as usize, H as usize, &state);
     maps.reverse();
+
     if let Some(map) = maps.pop() {
         state.set_map(map);
     }
@@ -36,16 +45,13 @@ pub fn main() -> anyhow::Result<()> {
                     repeat: false,
                     ..
                 } => match k {
-                    Keycode::Num1 => state.ts = TileSet::df_classic()?,
-                    Keycode::Num2 => state.ts = TileSet::df_buddy()?,
-                    Keycode::Num3 => state.ts = TileSet::df_sb()?,
-                    Keycode::Num4 => state.ts = TileSet::df_nordic()?,
-                    Keycode::Num5 => state.ts = TileSet::df_rde()?,
-                    Keycode::Num6 => state.ts = TileSet::df_yayo()?,
-                    Keycode::Num7 => state.ts = TileSet::df_kruggsmash()?,
+                    Keycode::Num1 => set!(builder, SimpleDungeon, maps, state),
+                    Keycode::Num2 => set!(builder, BspDungeon, maps, state),
+                    Keycode::Num3 => set!(builder, CACave::simple(15), maps, state),
+                    Keycode::Num4 => set!(builder, CACave::rogue_basin(15), maps, state),
 
                     Keycode::R => {
-                        maps = BspDungeon.trace_build(W as usize, H as usize, &state);
+                        maps = builder.trace_build(W as usize, H as usize, &state);
                         maps.reverse();
                     }
 

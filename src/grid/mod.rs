@@ -10,6 +10,17 @@ mod dijkstra_map;
 pub use astar::a_star;
 pub use dijkstra_map::dijkstra_map;
 
+const NEIGHBOURS: [(i32, i32); 8] = [
+    (-1, 0),
+    (1, 0),
+    (0, -1),
+    (0, 1),
+    (-1, -1),
+    (-1, 1),
+    (1, -1),
+    (1, 1),
+];
+
 /// A cell position within a [Grid]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos {
@@ -122,26 +133,16 @@ impl<T> Grid<T> {
     }
 
     pub fn neighbouring_tiles(&self, pos: Pos) -> impl Iterator<Item = Pos> {
-        let offsets = [
-            (-1, 0),
-            (1, 0),
-            (0, -1),
-            (0, 1),
-            (-1, -1),
-            (-1, 1),
-            (1, -1),
-            (1, 1),
-        ];
-        let mut idx = 0;
+        let mut i = 0;
 
         from_fn(move || {
             loop {
-                if idx == 8 {
+                if i == 8 {
                     break;
                 }
 
-                let (dx, dy) = offsets[idx];
-                idx += 1;
+                let (dx, dy) = NEIGHBOURS[i];
+                i += 1;
                 let p = Pos::new(pos.x + dx, pos.y + dy);
                 if self.contains_pos(p) {
                     return Some(p);

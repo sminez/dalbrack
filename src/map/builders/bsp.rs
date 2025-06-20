@@ -4,13 +4,12 @@ use crate::{
         Map,
         builders::{BuildMap, Snapshots},
     },
+    rng::RngHandle,
     state::State,
 };
 use rand::{Rng, rngs::ThreadRng};
 use sdl2::rect::Rect;
 use std::cmp::{max, min};
-
-use super::random_point;
 
 /// min split position as a %
 const SPLIT_FROM: f32 = 0.35;
@@ -32,7 +31,7 @@ impl BuildMap for BspDungeon {
         snapshots: &mut Snapshots,
     ) -> (Pos, Map) {
         let mut map = Map::new(map_w, map_h, state);
-        let mut rng = rand::rng();
+        let mut rng = RngHandle::new();
 
         let starting_room = split_and_connect(
             Rect::new(0, 0, map_w as u32, map_h as u32),
@@ -51,7 +50,7 @@ impl BuildMap for BspDungeon {
 fn split_and_connect(
     r: Rect,
     depth: usize,
-    rng: &mut ThreadRng,
+    rng: &mut RngHandle,
     map: &mut Map,
     snapshots: &mut Snapshots,
 ) -> Rect {
@@ -121,9 +120,9 @@ fn position_and_carve(
     r
 }
 
-fn connect(r1: Rect, r2: Rect, rng: &mut ThreadRng, map: &mut Map, snapshots: &mut Snapshots) {
-    let (x1, y1) = random_point(r1, 1, rng);
-    let (x2, y2) = random_point(r2, 1, rng);
+fn connect(r1: Rect, r2: Rect, rng: &mut RngHandle, map: &mut Map, snapshots: &mut Snapshots) {
+    let (x1, y1) = rng.random_point(r1, 1);
+    let (x2, y2) = rng.random_point(r2, 1);
 
     if rng.random_bool(0.5) {
         map.carve_h_tunnel(x1, x2, y1);

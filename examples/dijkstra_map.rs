@@ -3,7 +3,7 @@ use dalbrack::{
     grid::dijkstra_map,
     map::{
         Map,
-        builders::{BspDungeon, BuildMap},
+        builders::{BspDungeon, BuildMap, CACave, SimpleDungeon},
     },
     player::Player,
     state::State,
@@ -20,9 +20,20 @@ const DXY: u32 = 25;
 const W: i32 = 60;
 const H: i32 = 40;
 
+macro_rules! set {
+    ($builder:expr, $new:expr, $state:expr) => {{
+        $builder = Box::new($new);
+        let (pos, mut map) = $builder.new_map(W as usize, H as usize, &$state);
+        map.explore_all();
+        $state.set_map(map);
+        Player::set_pos(pos, &mut $state);
+    }};
+}
+
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let (pos, mut map) = BspDungeon.new_map(W as usize, H as usize, &state);
+    let mut builder = Box::new(CACave::default()) as Box<dyn BuildMap>;
+    let (pos, mut map) = builder.new_map(W as usize, H as usize, &state);
     map.explore_all();
     state.set_map(map);
 
@@ -42,6 +53,11 @@ pub fn main() -> anyhow::Result<()> {
                 repeat: false,
                 ..
             } => match k {
+                Keycode::Num1 => set!(builder, SimpleDungeon, state),
+                Keycode::Num2 => set!(builder, BspDungeon, state),
+                Keycode::Num3 => set!(builder, CACave::simple(15), state),
+                Keycode::Num4 => set!(builder, CACave::rogue_basin(15), state),
+
                 Keycode::L | Keycode::Right => Player::try_move(1, 0, &mut state),
                 Keycode::H | Keycode::Left => Player::try_move(-1, 0, &mut state),
                 Keycode::K | Keycode::Up => Player::try_move(0, -1, &mut state),
@@ -52,7 +68,7 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::N => Player::try_move(1, 1, &mut state),
 
                 Keycode::R => {
-                    let (pos, mut map) = BspDungeon.new_map(W as usize, H as usize, &state);
+                    let (pos, mut map) = builder.new_map(W as usize, H as usize, &state);
                     map.explore_all();
                     state.set_map(map);
                     Player::set_pos(pos, &mut state);

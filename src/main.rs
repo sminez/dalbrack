@@ -2,7 +2,7 @@ use dalbrack::{
     Pos, TITLE,
     map::{
         Map,
-        builders::{BspDungeon, BuildMap},
+        builders::{BuildMap, CACave},
         fov::{FovRange, LightSource},
     },
     player::Player,
@@ -16,12 +16,16 @@ use std::{
 };
 
 const DXY: u32 = 25;
-const W: i32 = 60;
+const W: i32 = 70;
 const H: i32 = 40;
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let (pos, map) = BspDungeon.new_map(W as usize, H as usize, &state);
+
+    let mut builder = CACave::simple(15);
+    // let mut builder = BspDungeon;
+
+    let (pos, map) = builder.new_map(W as usize, H as usize, &state);
     state.set_map(map);
 
     let player_sprite = state.tile_with_named_color("@", "white");
@@ -61,7 +65,7 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::N => Player::try_move(1, 1, &mut state),
 
                 Keycode::R => {
-                    let (pos, map) = BspDungeon.new_map(W as usize, H as usize, &state);
+                    let (pos, map) = builder.new_map(W as usize, H as usize, &state);
                     state.set_map(map);
                     Player::set_pos(pos, &mut state);
                     let lights: Vec<_> = state
