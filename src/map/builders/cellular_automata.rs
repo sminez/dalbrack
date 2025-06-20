@@ -35,38 +35,47 @@ impl BuildMap for CACave {
         state: &State<'_>,
         snapshots: &mut Snapshots,
     ) -> (Pos, Map) {
-        let mut map = Map::new(map_w, map_h, state);
         let mut rng = RngHandle::new();
 
-        // randomly initialise the map with %P_INITIAL_FLOOR floor tiles
-        for i in 0..map.tiles.len() {
-            if rng.percentile() > P_INITIAL_FLOOR {
-                map.tiles[i] = FLOOR;
-            }
-        }
-        snapshots.push(&map);
+        loop {
+            let mut map = Map::new(map_w, map_h, state);
 
-        // run the automata
-        for _ in 0..self.iterations {
-            let mut new = map.tiles.clone();
-
-            for y in 1..map_h - 1 {
-                for x in 1..map_w - 1 {
-                    let p = Pos::new(x as i32, y as i32);
-                    let on = map[p] == FLOOR;
-                    let n = map
-                        .neighbouring_tiles(p)
-                        .filter(|q| map[*q] == WALL)
-                        .count();
-                    new[p] = if self.rule.is_on(n, on) { FLOOR } else { WALL };
+            // randomly initialise the map with %P_INITIAL_FLOOR floor tiles
+            for i in 0..map.tiles.len() {
+                if rng.percentile() > P_INITIAL_FLOOR {
+                    map.tiles[i] = FLOOR;
                 }
             }
-
-            map.tiles = new;
             snapshots.push(&map);
-        }
 
-        (Pos::new(0, 0), map)
+            // run the automata
+            for _ in 0..self.iterations {
+                let mut new = map.tiles.clone();
+
+                for y in 1..map_h - 1 {
+                    for x in 1..map_w - 1 {
+                        let p = Pos::new(x as i32, y as i32);
+                        let on = map[p] == FLOOR;
+                        let n = map
+                            .neighbouring_tiles(p)
+                            .filter(|q| map[*q] == WALL)
+                            .count();
+                        new[p] = if self.rule.is_on(n, on) { FLOOR } else { WALL };
+                    }
+                }
+
+                map.tiles = new;
+                snapshots.push(&map);
+            }
+
+            let mut pos = Pos::new(map_w as i32 / 2, map_h as i32 / 2);
+            while pos.x >= 0 {
+                if map[pos] == FLOOR {
+                    return (pos, map);
+                }
+                pos.x -= 1;
+            }
+        }
     }
 }
 
