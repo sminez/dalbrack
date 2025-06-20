@@ -13,22 +13,9 @@ impl RandomMoveAI {
             return;
         }
 
-        // 012
-        // 3 4
-        // 567
-        let dir = r.random_range(0..8);
-
-        if [0, 3, 5].contains(&dir) {
-            pos.x = max(0, pos.x - 1);
-        } else if [2, 4, 7].contains(&dir) {
-            pos.x = min(xmax, pos.x + 1);
-        }
-
-        if [0, 1, 2].contains(&dir) {
-            pos.y = max(0, pos.y - 1);
-        } else if [5, 6, 7].contains(&dir) {
-            pos.y = min(ymax, pos.y + 1);
-        }
+        *pos = pos.random_offset();
+        pos.x = max(0, min(xmax, pos.x));
+        pos.y = max(0, min(ymax, pos.y));
     }
 }
 

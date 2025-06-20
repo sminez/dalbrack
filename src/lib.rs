@@ -3,6 +3,7 @@ pub mod grid;
 pub mod map;
 pub mod mob;
 pub mod player;
+pub mod rng;
 pub mod state;
 pub mod tileset;
 pub mod ui;

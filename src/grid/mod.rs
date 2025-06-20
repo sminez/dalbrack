@@ -1,3 +1,4 @@
+use rand::{Rng, rng};
 use std::{
     iter::from_fn,
     ops::{Add, AddAssign, Index, IndexMut},
@@ -27,6 +28,30 @@ impl Pos {
 
     pub fn fdist(&self, other: Pos) -> f32 {
         (((self.x - other.x).pow(2) + (self.y - other.y).pow(2)) as f32).sqrt()
+    }
+
+    pub fn random_offset(&self) -> Pos {
+        let mut r = rng();
+        let mut pos = *self;
+
+        // 012
+        // 3 4
+        // 567
+        let dir = r.random_range(0..8);
+
+        if [0, 3, 5].contains(&dir) {
+            pos.x -= 1;
+        } else if [2, 4, 7].contains(&dir) {
+            pos.x += 1;
+        }
+
+        if [0, 1, 2].contains(&dir) {
+            pos.y -= 1;
+        } else if [5, 6, 7].contains(&dir) {
+            pos.y += 1;
+        }
+
+        pos
     }
 }
 
