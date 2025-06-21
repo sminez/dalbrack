@@ -22,7 +22,7 @@ const H: i32 = 40;
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
 
-    let mut builder = CellularAutomata::rogue_basin();
+    let mut builder = CellularAutomata::walled_cities();
     // let mut builder = BspDungeon;
 
     let (pos, map) = builder.new_map(W as usize, H as usize, &state);
@@ -33,7 +33,7 @@ pub fn main() -> anyhow::Result<()> {
         Player,
         FovRange(30),
         LightSource {
-            range: 5,
+            range: 12,
             color: Color::RGB(80, 50, 20),
         },
         pos,
@@ -140,7 +140,7 @@ pub fn main() -> anyhow::Result<()> {
                 let target = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
                 let from = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
                 let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
-                let path = map.a_star(from, target);
+                let path = map.a_star_in_player_explored(from, target);
 
                 for new_pos in path.into_iter() {
                     Player::try_move_pos(new_pos, &mut state);

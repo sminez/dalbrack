@@ -66,6 +66,16 @@ impl Map {
         }
     }
 
+    pub fn a_star_in_player_explored(&self, a: Pos, b: Pos) -> Vec<Pos> {
+        a_star(a, b, &self.tiles, |p| {
+            if self.explored.contains(&self.pos_idx(p)) {
+                self.tile_defs[self.tiles[p]].path_cost
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn a_star(&self, a: Pos, b: Pos) -> Vec<Pos> {
         a_star(a, b, &self.tiles, |p| {
             self.tile_defs[self.tiles[p]].path_cost
