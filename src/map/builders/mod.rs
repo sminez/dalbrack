@@ -6,7 +6,7 @@ mod cellular_automata;
 mod simple_dungeon;
 
 pub use bsp::BspDungeon;
-pub use cellular_automata::CellularAutomata;
+pub use cellular_automata::{CaRule, CellularAutomata};
 pub use simple_dungeon::SimpleDungeon;
 
 pub trait BuildMap {

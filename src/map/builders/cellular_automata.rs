@@ -17,11 +17,10 @@ use crate::{
     state::State,
 };
 
-#[derive(Debug)]
 pub struct CellularAutomata {
-    p_initial_floor: u16,
-    iterations: usize,
-    rule: fn(Pos, usize, &Map) -> bool,
+    pub p_initial_floor: u16,
+    pub iterations: usize,
+    pub rule: CaRule,
 }
 
 impl Default for CellularAutomata {
@@ -58,7 +57,7 @@ impl BuildMap for CellularAutomata {
                 for y in 1..map_h - 1 {
                     for x in 1..map_w - 1 {
                         let p = Pos::new(x as i32, y as i32);
-                        let wall = (self.rule)(p, i, &map);
+                        let wall = self.rule.is_wall(p, i, &map);
                         new[p] = if wall { WALL } else { FLOOR };
                     }
                 }
@@ -99,6 +98,20 @@ fn n_walls(p: Pos, n: i32, map: &Map) -> u8 {
 
 // Rules
 
+pub enum CaRule {
+    Fn(fn(Pos, usize, &Map) -> bool),
+    LifeLike { born: Vec<u8>, survive: Vec<u8> },
+}
+
+impl CaRule {
+    fn is_wall(&self, p: Pos, i: usize, map: &Map) -> bool {
+        match self {
+            Self::Fn(f) => (f)(p, i, map),
+            Self::LifeLike { born, survive } => life_like_rule(p, map, born, survive),
+        }
+    }
+}
+
 /// See https://en.wikipedia.org/wiki/Life-like_cellular_automaton
 fn life_like_rule(p: Pos, map: &Map, born: &[u8], survive: &[u8]) -> bool {
     let n = n_walls(p, 1, map);
@@ -118,7 +131,7 @@ macro_rules! rule {
                 Self {
                     p_initial_floor: $p_floor,
                     iterations: $iterations,
-                    rule: $name,
+                    rule: CaRule::Fn($name),
                 }
             }
         }
@@ -134,7 +147,7 @@ macro_rules! rule {
                 Self {
                     p_initial_floor: $p_floor,
                     iterations: $iterations,
-                    rule: $name,
+                    rule: CaRule::Fn($name),
                 }
             }
         }
@@ -170,3 +183,7 @@ rule!(@life diamoeba,  45, 6, [3,5,6,7,8], [5,6,7,8]);
 rule!(@life ice_balls, 45, 6, [2,5,6,7,8], [5,6,7,8]);
 
 rule!(@life coagulations, 60, 6, [2,3,5,6,7,8], [3,7,8]);
+rule!(@life serviettes, 50, 3, [], [2,3,4]);
+rule!(@life gnarl, 1, 30, [1], [1]);
+
+rule!(@life stains, 21, 9, [3,6,7,8], [2,3,5,6,7,8]);

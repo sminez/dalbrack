@@ -1,0 +1,42 @@
+# CA rules here are given in by their rulestring paired with a prefix of the
+# % of initial floor tiles and the number of iterations to run.
+#   - See https://catagolue.hatsya.com/rules/lifelike for a large list of rules
+#   - See https://conwaylife.com/wiki/List_of_Life-like_rules for a shorter list
+#     that also contains some descriptions of their properties and sometimes a
+#     wiki page with more details.
+#   - https://en.wikipedia.org/wiki/Life-like_cellular_automaton
+#
+# The parameters in this file for %floor and iterations are ones that I have found
+# to produce interesting results. There is definitely a lot more to play with here
+# though so variations should be tested as well.
+
+
+# >> CAVE LIKE
+55 5  | b45678s2345     # walled cities - produces lots of enclosed regions
+69 9  | b01245s01245    # 01245         - this one is pretty good: large open spaces + twisting fragments
+57 5  | b05678s05678    # tends to give small islands and a lot of shrapnel + one or two large islands
+45 18 | b3678s34678     # day & night - https://conwaylife.com/wiki/OCA:Day_%26_Night
+20 14 | b3678s235678    # stains - https://conwaylife.com/wiki/OCA:Stains
+21 9  | b3678s235678    # stains
+50 6  | b35678s5678     # diamoeba
+50 6  | b25678s5678     # ice balls (between cave and noise)
+
+# anneal / "twisted majority" - approximates curve shortening flow on the boundaries between regions (https://en.wikipedia.org/wiki/Curve-shortening_flow)
+# https://conwaylife.com/wiki/OCA:Vote#Vote_4/5
+49 8  | b4678s35678
+45 5  | b4678s35678
+45 7  | b5678s45678     # vote
+
+# >> MAZE LIKE
+60 10 | b3s12345        # maze
+60 10 | b3s1234         # mazectric
+90 18 | b028s0124       # invertamaze - maze like structures that invert on each iteration
+1 20  | b1s012345678    # h-trees - https://conwaylife.com/wiki/OCA:H-trees
+
+# >> NOISE LIKE
+60 28 | b378s235678     # coagulations
+50 3  | b234s           # serviettes
+1 30  | b1s1            # gnarl
+55 7  | b3s23           # conway
+50 12 | b368s245        # morley
+40 8  | b3s124           # corrosion
