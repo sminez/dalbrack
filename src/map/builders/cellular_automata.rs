@@ -8,7 +8,7 @@
 //! https://catagolue.hatsya.com/rules/lifelike
 //! https://conwaylife.com/wiki/Isotropic_non-totalistic_rule
 use crate::{
-    Pos,
+    Grid, Pos,
     map::{
         FLOOR, Map, WALL,
         builders::{BuildMap, Snapshots},
@@ -52,17 +52,7 @@ impl BuildMap for CellularAutomata {
 
             // run the automata
             for i in 0..self.iterations {
-                let mut new = map.tiles.clone();
-
-                for y in 1..map_h - 1 {
-                    for x in 1..map_w - 1 {
-                        let p = Pos::new(x as i32, y as i32);
-                        let wall = self.rule.is_wall(p, i, &map);
-                        new[p] = if wall { WALL } else { FLOOR };
-                    }
-                }
-
-                map.tiles = new;
+                map.tiles = self.rule.run(i, &map);
                 snapshots.push(&map);
             }
 
@@ -104,7 +94,21 @@ pub enum CaRule {
 }
 
 impl CaRule {
-    fn is_wall(&self, p: Pos, i: usize, map: &Map) -> bool {
+    pub fn run(&self, i: usize, map: &Map) -> Grid<usize> {
+        let mut new = map.tiles.clone();
+
+        for y in 1..map.h - 1 {
+            for x in 1..map.w - 1 {
+                let p = Pos::new(x as i32, y as i32);
+                let wall = self.is_wall(p, i, map);
+                new[p] = if wall { WALL } else { FLOOR };
+            }
+        }
+
+        new
+    }
+
+    pub fn is_wall(&self, p: Pos, i: usize, map: &Map) -> bool {
         match self {
             Self::Fn(f) => (f)(p, i, map),
             Self::LifeLike { born, survive } => life_like_rule(p, map, born, survive),
@@ -126,12 +130,18 @@ macro_rules! rule {
             $impl(pos, i, map)
         }
 
+        impl CaRule {
+            pub fn $name() -> Self {
+                Self::Fn($name)
+            }
+        }
+
         impl CellularAutomata {
             pub fn $name() -> Self {
                 Self {
                     p_initial_floor: $p_floor,
                     iterations: $iterations,
-                    rule: CaRule::Fn($name),
+                    rule: CaRule::$name(),
                 }
             }
         }
@@ -140,6 +150,12 @@ macro_rules! rule {
     (@life $name:ident, $p_floor:expr, $iterations:expr, [$($born:expr),*], [$($survive:expr),*]) => {
         pub fn $name(pos: Pos, _: usize, map: &Map) -> bool {
             life_like_rule(pos, map, &[$($born),*], &[$($survive),*])
+        }
+
+        impl CaRule {
+            pub fn $name() -> Self {
+                Self::Fn($name)
+            }
         }
 
         impl CellularAutomata {
@@ -166,6 +182,9 @@ rule!(rogue_basin, 60, 7, |p: Pos, i: usize, map: &Map| {
 
     if i < 4 { n1 >= 5 || n2 <= 2 } else { n1 >= 5 }
 });
+
+// 45 7  | b5678s45678     # vote - https://conwaylife.com/wiki/OCA:Vote
+rule!(@life vote, 45, 7, [5,6,7,8], [4,5,6,7,8]);
 
 rule!(@life conway, 55, 7, [3], [2, 3]);
 rule!(@life day_night, 70, 7, [3,6,7,8], [3,4,6,7,8]);

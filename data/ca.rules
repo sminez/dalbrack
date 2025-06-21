@@ -21,11 +21,11 @@
 50 6  | b35678s5678     # diamoeba
 50 6  | b25678s5678     # ice balls (between cave and noise)
 
+45 7  | b5678s45678     # vote - https://conwaylife.com/wiki/OCA:Vote
 # anneal / "twisted majority" - approximates curve shortening flow on the boundaries between regions (https://en.wikipedia.org/wiki/Curve-shortening_flow)
 # https://conwaylife.com/wiki/OCA:Vote#Vote_4/5
 49 8  | b4678s35678
 45 5  | b4678s35678
-45 7  | b5678s45678     # vote
 
 # >> MAZE LIKE
 60 10 | b3s12345        # maze
@@ -39,4 +39,4 @@
 1 30  | b1s1            # gnarl
 55 7  | b3s23           # conway
 50 12 | b368s245        # morley
-40 8  | b3s124           # corrosion
+40 8  | b3s124          # corrosion

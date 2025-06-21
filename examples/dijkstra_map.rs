@@ -32,7 +32,7 @@ macro_rules! set {
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let mut builder = Box::new(CellularAutomata::default()) as Box<dyn BuildMap>;
+    let mut builder = Box::new(BspDungeon) as Box<dyn BuildMap>;
     let (pos, mut map) = builder.new_map(W as usize, H as usize, &state);
     map.explore_all();
     state.set_map(map);
