@@ -9,7 +9,7 @@ pub use bsp::BspDungeon;
 pub use cellular_automata::{CaRule, CellularAutomata};
 pub use simple_dungeon::SimpleDungeon;
 
-pub trait BuildMap {
+pub trait BuildMap: Send + Sync {
     fn new_map(&mut self, map_w: usize, map_h: usize, state: &State<'_>) -> (Pos, Map) {
         let mut snapshots = Snapshots {
             inner: Vec::new(),
@@ -59,6 +59,24 @@ pub trait BuildMap {
         state: &State<'_>,
         snapshots: &mut Snapshots,
     ) -> Option<(Pos, Map)>;
+}
+
+pub struct MapBuilder(pub Box<dyn Fn() -> Box<dyn BuildMap> + Send + Sync + 'static>);
+
+impl MapBuilder {
+    pub fn get(&self) -> Box<dyn BuildMap> {
+        (self.0)()
+    }
+}
+
+impl<F, B> From<F> for MapBuilder
+where
+    F: Fn() -> B + Send + Sync + 'static,
+    B: BuildMap + 'static,
+{
+    fn from(builder: F) -> Self {
+        Self(Box::new(move || Box::new((builder)())))
+    }
 }
 
 #[derive(Debug)]

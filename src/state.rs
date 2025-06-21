@@ -1,6 +1,7 @@
 //! The global state of the game
 use crate::{
     Pos,
+    action::Action,
     data_files::parse_color_palette,
     map::{
         Map,
@@ -11,7 +12,7 @@ use crate::{
 };
 use hecs::{Entity, World};
 use sdl2::{pixels::Color, rect::Rect};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 pub struct State<'a> {
     pub world: World,
@@ -20,6 +21,8 @@ pub struct State<'a> {
     pub ui: Sdl2UI<'a>,
     pub ts: TileSet<'a>,
     pub palette: HashMap<String, Color>,
+    pub running: bool,
+    pub action_queue: VecDeque<Action>,
 }
 
 impl<'a> State<'a> {
@@ -39,10 +42,25 @@ impl<'a> State<'a> {
             ui,
             ts,
             palette,
+            running: true,
+            action_queue: VecDeque::new(),
         })
     }
 
     pub fn tick(&mut self) -> anyhow::Result<()> {
+        if self.action_queue.is_empty() {
+            return self.update_ui();
+        }
+
+        while let Some(action) = self.action_queue.pop_front() {
+            action.run(self)?;
+            self.update_ui()?;
+        }
+
+        Ok(())
+    }
+
+    fn update_ui(&mut self) -> anyhow::Result<()> {
         self.update_fov()?;
         self.update_light_map()?;
 

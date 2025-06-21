@@ -1,5 +1,7 @@
+pub mod action;
 pub mod data_files;
 pub mod grid;
+pub mod input;
 pub mod map;
 pub mod mob;
 pub mod player;
