@@ -25,16 +25,13 @@ pub struct BspDungeon;
 impl BuildMap for BspDungeon {
     fn build(
         &mut self,
-        map_w: usize,
-        map_h: usize,
-        state: &State<'_>,
+        mut map: Map,
+        _: &State<'_>,
         snapshots: &mut Snapshots,
-    ) -> (Pos, Map) {
-        let mut map = Map::new(map_w, map_h, state);
+    ) -> Option<(Pos, Map)> {
         let mut rng = RngHandle::new();
-
         let starting_room = split_and_connect(
-            Rect::new(0, 0, map_w as u32, map_h as u32),
+            Rect::new(0, 0, map.w as u32, map.h as u32),
             0,
             &mut rng,
             &mut map,
@@ -43,7 +40,7 @@ impl BuildMap for BspDungeon {
 
         let p = starting_room.center();
 
-        (Pos::new(p.x, p.y), map)
+        Some((Pos::new(p.x, p.y), map))
     }
 }
 

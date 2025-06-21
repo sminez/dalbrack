@@ -15,12 +15,10 @@ pub struct SimpleDungeon;
 impl BuildMap for SimpleDungeon {
     fn build(
         &mut self,
-        map_w: usize,
-        map_h: usize,
-        state: &State<'_>,
+        mut map: Map,
+        _: &State<'_>,
         snapshots: &mut Snapshots,
-    ) -> (Pos, Map) {
-        let mut map = Map::new(map_w, map_h, state);
+    ) -> Option<(Pos, Map)> {
         let mut rooms: Vec<Rect> = Vec::new();
         let mut rng = rand::rng();
 
@@ -31,8 +29,8 @@ impl BuildMap for SimpleDungeon {
         for _ in 0..max_rooms {
             let w = rng.random_range(min_size..max_size);
             let h = rng.random_range(min_size..max_size);
-            let x = rng.random_range(1..map_w - w - 1) - 1;
-            let y = rng.random_range(1..map_h - h - 1) - 1;
+            let x = rng.random_range(1..map.w - w - 1) - 1;
+            let y = rng.random_range(1..map.h - h - 1) - 1;
             let r_new = Rect::new(x as i32, y as i32, w as u32, h as u32);
 
             // Ensure that we also don't have rooms that are adjacent without a dividing wall
@@ -68,6 +66,6 @@ impl BuildMap for SimpleDungeon {
 
         let p = rooms[0].center();
 
-        (Pos::new(p.x, p.y), map)
+        Some((Pos::new(p.x, p.y), map))
     }
 }

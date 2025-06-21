@@ -30,40 +30,36 @@ impl Default for CellularAutomata {
 }
 
 impl BuildMap for CellularAutomata {
-    fn build(
-        &mut self,
-        map_w: usize,
-        map_h: usize,
-        state: &State<'_>,
-        snapshots: &mut Snapshots,
-    ) -> (Pos, Map) {
+    fn init_map(&mut self, map: &mut Map) {
         let mut rng = RngHandle::new();
 
-        loop {
-            let mut map = Map::new(map_w, map_h, state);
-
-            // randomly initialise the map with floor tiles
-            for i in 0..map.tiles.len() {
-                if rng.percentile() > self.p_initial_floor {
-                    map.tiles[i] = FLOOR;
-                }
-            }
-            snapshots.push(&map);
-
-            // run the automata
-            for i in 0..self.iterations {
-                map.tiles = self.rule.run(i, &map);
-                snapshots.push(&map);
-            }
-
-            let mut pos = Pos::new(map_w as i32 / 2, map_h as i32 / 2);
-            while pos.x >= 0 {
-                if map[pos] == FLOOR {
-                    return (pos, map);
-                }
-                pos.x -= 1;
+        for i in 0..map.tiles.len() {
+            if rng.percentile() > self.p_initial_floor {
+                map.tiles[i] = FLOOR;
             }
         }
+    }
+
+    fn build(
+        &mut self,
+        mut map: Map,
+        _: &State<'_>,
+        snapshots: &mut Snapshots,
+    ) -> Option<(Pos, Map)> {
+        for i in 0..self.iterations {
+            map.tiles = self.rule.run(i, &map);
+            snapshots.push(&map);
+        }
+
+        let mut pos = Pos::new(map.w as i32 / 2, map.h as i32 / 2);
+        while pos.x >= 0 {
+            if map[pos] == FLOOR {
+                return Some((pos, map));
+            }
+            pos.x -= 1;
+        }
+
+        None
     }
 }
 

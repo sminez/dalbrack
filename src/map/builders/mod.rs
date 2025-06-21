@@ -16,7 +16,17 @@ pub trait BuildMap {
             active: false,
         };
 
-        self.build(map_w, map_h, state, &mut snapshots)
+        loop {
+            let mut map = Map::new(map_w, map_h, state);
+            self.init_map(&mut map);
+            snapshots.push(&map);
+
+            if let Some(output) = self.build(map, state, &mut snapshots) {
+                return output;
+            }
+
+            snapshots.inner.clear();
+        }
     }
 
     fn trace_build(&mut self, map_w: usize, map_h: usize, state: &State<'_>) -> Vec<Map> {
@@ -25,20 +35,30 @@ pub trait BuildMap {
             active: true,
         };
 
-        let (_, mut map) = self.build(map_w, map_h, state, &mut snapshots);
-        map.explore_all();
-        snapshots.inner.push(map);
+        loop {
+            let mut map = Map::new(map_w, map_h, state);
+            self.init_map(&mut map);
+            snapshots.push(&map);
 
-        snapshots.inner
+            if let Some((_, mut map)) = self.build(map, state, &mut snapshots) {
+                map.explore_all();
+                snapshots.inner.push(map);
+                return snapshots.inner;
+            }
+
+            snapshots.inner.clear();
+        }
     }
+
+    #[allow(unused_variables)]
+    fn init_map(&mut self, map: &mut Map) {}
 
     fn build(
         &mut self,
-        map_w: usize,
-        map_h: usize,
+        map: Map,
         state: &State<'_>,
         snapshots: &mut Snapshots,
-    ) -> (Pos, Map);
+    ) -> Option<(Pos, Map)>;
 }
 
 #[derive(Debug)]
