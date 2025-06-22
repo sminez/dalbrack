@@ -17,7 +17,7 @@ use std::{
     fs,
     path::Path,
     sync::atomic::{AtomicBool, Ordering},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 static FILE_CHANGED: AtomicBool = AtomicBool::new(false);
@@ -64,17 +64,14 @@ pub fn main() -> anyhow::Result<()> {
     )?;
     watcher.watch(Path::new("data"), RecursiveMode::NonRecursive)?;
 
-    tick(&mut state)?;
-    let mut t1 = Instant::now();
+    state.tick_with(update_ui)?;
 
     while state.running {
-        let mut need_render = true;
-
         if FILE_CHANGED.swap(false, Ordering::Relaxed) {
             match parse_ca_rule() {
                 Ok(ca) => {
                     set!(builder, ca, state);
-                    tick(&mut state)?;
+                    update_ui(&mut state)?;
                     continue;
                 }
                 Err(e) => println!("ERROR {e}"),
@@ -96,27 +93,19 @@ pub fn main() -> anyhow::Result<()> {
                             Err(e) => println!("ERROR {e}"),
                         }
                     } else {
-                        need_render = false;
+                        continue;
                     }
                 }
             }
         }
 
-        let t2 = Instant::now();
-        if t2.duration_since(t1).as_secs_f64() >= 1.0 {
-            t1 = t2;
-            need_render = true;
-        }
-
-        if need_render {
-            state.tick()?;
-        }
+        state.tick_with(update_ui)?;
     }
 
     Ok(())
 }
 
-fn tick(state: &mut State<'_>) -> anyhow::Result<()> {
+fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
     let dmap = update_dmap(state);
     state.ui.clear();
 

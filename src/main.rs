@@ -12,7 +12,6 @@ use dalbrack::{
 };
 use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
-use std::time::Instant;
 
 const DXY: u32 = 25;
 const W: i32 = 70;
@@ -43,29 +42,19 @@ pub fn main() -> anyhow::Result<()> {
     ));
 
     state.tick()?;
-    let mut t1 = Instant::now();
 
     while state.running {
-        let mut need_render = true;
         let event = state.ui.wait_event();
 
         match map_event_in_game_state(&event) {
             Some(action) => state.action_queue.push_back(action),
             None => match map_other_events(&event) {
                 Some(action) => state.action_queue.push_back(action),
-                None => need_render = false,
+                None => continue,
             },
         }
 
-        let t2 = Instant::now();
-        if t2.duration_since(t1).as_secs_f64() >= 1.0 {
-            t1 = t2;
-            need_render = true;
-        }
-
-        if need_render {
-            state.tick()?;
-        }
+        state.tick()?;
     }
 
     Ok(())

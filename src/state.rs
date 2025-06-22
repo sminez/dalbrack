@@ -1,6 +1,6 @@
 //! The global state of the game
 use crate::{
-    Pos,
+    FRAME_LEN_MS, Pos,
     action::Action,
     data_files::parse_color_palette,
     map::{
@@ -12,7 +12,11 @@ use crate::{
 };
 use hecs::{Entity, World};
 use sdl2::{pixels::Color, rect::Rect};
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 pub struct State<'a> {
     pub world: World,
@@ -23,6 +27,7 @@ pub struct State<'a> {
     pub palette: HashMap<String, Color>,
     pub running: bool,
     pub action_queue: VecDeque<Action>,
+    pub last_tick: Instant,
 }
 
 impl<'a> State<'a> {
@@ -44,6 +49,7 @@ impl<'a> State<'a> {
             palette,
             running: true,
             action_queue: VecDeque::new(),
+            last_tick: Instant::now(),
         })
     }
 
@@ -52,11 +58,13 @@ impl<'a> State<'a> {
         update_fn: fn(&mut Self) -> anyhow::Result<()>,
     ) -> anyhow::Result<()> {
         if self.action_queue.is_empty() {
+            self.wait_for_frame();
             return (update_fn)(self);
         }
 
         while let Some(action) = self.action_queue.pop_front() {
             action.run(self)?;
+            self.wait_for_frame();
             (update_fn)(self)?;
         }
 
@@ -65,15 +73,27 @@ impl<'a> State<'a> {
 
     pub fn tick(&mut self) -> anyhow::Result<()> {
         if self.action_queue.is_empty() {
+            self.wait_for_frame();
             return self.update_ui();
         }
 
         while let Some(action) = self.action_queue.pop_front() {
             action.run(self)?;
+            self.wait_for_frame();
             self.update_ui()?;
         }
 
         Ok(())
+    }
+
+    fn wait_for_frame(&mut self) {
+        let t_now = Instant::now();
+        let delta = t_now.duration_since(self.last_tick).as_millis() as u64;
+        if delta < FRAME_LEN_MS {
+            sleep(Duration::from_millis(FRAME_LEN_MS - delta));
+        }
+
+        self.last_tick = Instant::now();
     }
 
     fn update_ui(&mut self) -> anyhow::Result<()> {

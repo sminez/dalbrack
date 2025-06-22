@@ -13,3 +13,5 @@ pub mod ui;
 pub use grid::{Grid, Pos};
 
 pub const TITLE: &str = "Dalbrack";
+pub const TARGET_FPS: u64 = 60;
+pub const FRAME_LEN_MS: u64 = 1000 / TARGET_FPS;
