@@ -4,7 +4,7 @@ use dalbrack::{
     input::map_event_in_game_state,
     map::{
         Map,
-        builders::{BspDungeon, BuildMap, CellularAutomata, MapBuilder},
+        builders::{BspDungeon, BuildConfig, BuildMap, MapBuilder},
         fov::{FovRange, LightSource},
     },
     player::Player,
@@ -16,14 +16,12 @@ use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 const DXY: u32 = 25;
 const W: i32 = 70;
 const H: i32 = 40;
+const CFG: BuildConfig = BuildConfig { populated: true };
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    // let (pos, map) = CellularAutomata::walled_cities().new_map(W as usize, H as usize, &state);
-    // let builder = MapBuilder::from(CellularAutomata::walled_cities);
-
-    let (pos, map) = BspDungeon::default().new_map(W as usize, H as usize, &mut state);
-    let builder = MapBuilder::from(CellularAutomata::walled_cities);
+    let (pos, map) = BspDungeon::default().new_map(W as usize, H as usize, CFG, &mut state);
+    let builder = MapBuilder::from(BspDungeon::default);
 
     state.set_map(map);
     state
@@ -40,6 +38,8 @@ pub fn main() -> anyhow::Result<()> {
             .build(),
     );
 
+    state.update_fov()?;
+    state.update_light_map()?;
     state.update_ui()?;
 
     while state.running {
@@ -75,7 +75,7 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
                     .query_one_mut::<&MapBuilder>(state.e_map)
                     .unwrap();
 
-                let (pos, map) = builder.get().new_map(W as usize, H as usize, state);
+                let (pos, map) = builder.get().new_map(W as usize, H as usize, CFG, state);
                 state.set_map(map);
                 Player::warp(pos, state);
                 let lights: Vec<_> = state

@@ -3,7 +3,7 @@ use dalbrack::{
     input::map_event_in_game_state,
     map::{
         Map,
-        builders::{BspDungeon, BuildMap},
+        builders::{BspDungeon, BuildConfig, BuildMap},
         fov::FovRange,
     },
     player::Player,
@@ -15,12 +15,13 @@ use std::time::Instant;
 const DXY: u32 = 25;
 const W: i32 = 60;
 const H: i32 = 40;
+const CFG: BuildConfig = BuildConfig { populated: false };
 
 struct PathTile;
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let (pos, mut map) = BspDungeon::default().new_map(W as usize, H as usize, &mut state);
+    let (pos, mut map) = BspDungeon::default().new_map(W as usize, H as usize, CFG, &mut state);
     map.explore_all();
     state.set_map(map);
 
@@ -47,8 +48,8 @@ pub fn main() -> anyhow::Result<()> {
                         ..
                     } => match k {
                         Keycode::R => {
-                            let (pos, mut map) =
-                                BspDungeon::default().new_map(W as usize, H as usize, &mut state);
+                            let (pos, mut map) = BspDungeon::default()
+                                .new_map(W as usize, H as usize, CFG, &mut state);
                             map.explore_all();
                             state.set_map(map);
                             Player::warp(pos, &state);

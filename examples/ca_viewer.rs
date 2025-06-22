@@ -4,7 +4,7 @@ use dalbrack::{
     input::map_event_in_game_state,
     map::{
         Map,
-        builders::{BuildMap, CaRule, CellularAutomata},
+        builders::{BuildConfig, BuildMap, CaRule, CellularAutomata},
         fov::FovRange,
     },
     player::Player,
@@ -25,11 +25,12 @@ static FILE_CHANGED: AtomicBool = AtomicBool::new(false);
 const DXY: u32 = 25;
 const W: i32 = 80;
 const H: i32 = 50;
+const CFG: BuildConfig = BuildConfig { populated: false };
 
 macro_rules! set {
     ($builder:expr, $new:expr, $state:expr) => {{
         $builder = Box::new($new);
-        let (pos, mut map) = $builder.new_map(W as usize, H as usize, &mut $state);
+        let (pos, mut map) = $builder.new_map(W as usize, H as usize, CFG, &mut $state);
         map.explore_all();
         $state.set_map(map);
         Player::warp(pos, &$state);
@@ -39,7 +40,7 @@ macro_rules! set {
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
     let mut builder = Box::new(parse_ca_rule()?) as Box<dyn BuildMap>;
-    let (pos, mut map) = builder.new_map(W as usize, H as usize, &mut state);
+    let (pos, mut map) = builder.new_map(W as usize, H as usize, CFG, &mut state);
     map.explore_all();
     state.set_map(map);
 
@@ -80,7 +81,7 @@ pub fn main() -> anyhow::Result<()> {
             }
         }
 
-        if let Some(event) = state.ui.wait_event_timeout(500) {
+        if let Some(event) = state.ui.poll_event() {
             match map_event_in_game_state(&event, &state) {
                 Some(action) => state.action_queue.push_back(action),
                 None => {
@@ -94,8 +95,6 @@ pub fn main() -> anyhow::Result<()> {
                             Ok(ca) => set!(builder, ca, state),
                             Err(e) => println!("ERROR {e}"),
                         }
-                    } else {
-                        continue;
                     }
                 }
             }
@@ -125,7 +124,6 @@ fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
         }
     }
     state.blit_tiles()?;
-
     state.ui.render()?;
 
     Ok(())

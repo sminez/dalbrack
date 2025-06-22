@@ -20,7 +20,13 @@ pub trait BuildMap: Send + Sync {
 
     fn populate(&mut self, state: &mut State<'_>);
 
-    fn new_map(&mut self, map_w: usize, map_h: usize, state: &mut State<'_>) -> (Pos, Map) {
+    fn new_map(
+        &mut self,
+        map_w: usize,
+        map_h: usize,
+        config: BuildConfig,
+        state: &mut State<'_>,
+    ) -> (Pos, Map) {
         let mut snapshots = Snapshots {
             inner: Vec::new(),
             active: false,
@@ -32,7 +38,9 @@ pub trait BuildMap: Send + Sync {
             snapshots.push(&map);
 
             if let Some(output) = self.build(map, state, &mut snapshots) {
-                self.populate(state);
+                if config.populated {
+                    self.populate(state);
+                }
                 return output;
             }
 
@@ -59,6 +67,17 @@ pub trait BuildMap: Send + Sync {
 
             snapshots.inner.clear();
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct BuildConfig {
+    pub populated: bool,
+}
+
+impl Default for BuildConfig {
+    fn default() -> Self {
+        Self { populated: true }
     }
 }
 

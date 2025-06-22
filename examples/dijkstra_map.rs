@@ -4,7 +4,7 @@ use dalbrack::{
     input::map_event_in_game_state,
     map::{
         Map,
-        builders::{BspDungeon, BuildMap, CellularAutomata},
+        builders::{BspDungeon, BuildConfig, BuildMap, CellularAutomata},
         fov::FovRange,
     },
     player::Player,
@@ -18,11 +18,12 @@ use std::time::Instant;
 const DXY: u32 = 25;
 const W: i32 = 60;
 const H: i32 = 40;
+const CFG: BuildConfig = BuildConfig { populated: false };
 
 macro_rules! set {
     ($builder:expr, $new:expr, $state:expr) => {{
         $builder = Box::new($new);
-        let (pos, mut map) = $builder.new_map(W as usize, H as usize, &mut $state);
+        let (pos, mut map) = $builder.new_map(W as usize, H as usize, CFG, &mut $state);
         map.explore_all();
         $state.set_map(map);
         Player::warp(pos, &mut $state);
@@ -32,7 +33,7 @@ macro_rules! set {
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
     let mut builder = Box::new(BspDungeon::default()) as Box<dyn BuildMap>;
-    let (pos, mut map) = builder.new_map(W as usize, H as usize, &mut state);
+    let (pos, mut map) = builder.new_map(W as usize, H as usize, CFG, &mut state);
     map.explore_all();
     state.set_map(map);
 
@@ -64,7 +65,7 @@ pub fn main() -> anyhow::Result<()> {
 
                         Keycode::R => {
                             let (pos, mut map) =
-                                builder.new_map(W as usize, H as usize, &mut state);
+                                builder.new_map(W as usize, H as usize, CFG, &mut state);
                             map.explore_all();
                             state.set_map(map);
                             Player::warp(pos, &state);

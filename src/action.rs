@@ -93,7 +93,7 @@ pub fn zoom_in(state: &mut State<'_>) -> anyhow::Result<()> {
 }
 
 pub fn zoom_out(state: &mut State<'_>) -> anyhow::Result<()> {
-    state.ui.dxy += 5;
+    state.ui.dxy -= 5;
 
     Ok(())
 }

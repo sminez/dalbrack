@@ -62,6 +62,10 @@ impl<'a> State<'a> {
 
         while let Some(action) = self.action_queue.pop_front() {
             action.run(self)?;
+
+            self.update_fov()?;
+            self.update_light_map()?;
+
             self.wait_for_frame();
             (update_fn)(self)?;
             rendered = true;
@@ -70,12 +74,16 @@ impl<'a> State<'a> {
         while let Some(action) = self.next_player_action() {
             action.run(self)?;
             self.run_actor_actions()?;
+
+            self.update_fov()?;
+            self.update_light_map()?;
+
             self.wait_for_frame();
             (update_fn)(self)?;
             rendered = true;
         }
 
-        if !rendered {
+        if !rendered && self.need_frame() {
             self.wait_for_frame();
             (update_fn)(self)?;
         }
@@ -110,6 +118,12 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    fn need_frame(&self) -> bool {
+        let t_now = Instant::now();
+        let delta = t_now.duration_since(self.last_tick).as_millis() as u64;
+        delta >= FRAME_LEN_MS
+    }
+
     fn wait_for_frame(&mut self) {
         let t_now = Instant::now();
         let delta = t_now.duration_since(self.last_tick).as_millis() as u64;
@@ -121,9 +135,6 @@ impl<'a> State<'a> {
     }
 
     pub fn update_ui(&mut self) -> anyhow::Result<()> {
-        self.update_fov()?;
-        self.update_light_map()?;
-
         self.ui.clear();
         self.blit_all()?;
         self.ui.render()?;
