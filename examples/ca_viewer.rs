@@ -1,6 +1,7 @@
 use dalbrack::{
     Grid, Pos, TITLE,
     grid::dijkstra_map,
+    input::map_event_in_game_state,
     map::{
         Map,
         builders::{BuildMap, CaRule, CellularAutomata},
@@ -11,12 +12,11 @@ use dalbrack::{
     ui::blend,
 };
 use notify_debouncer_full::{DebounceEventResult, new_debouncer, notify::RecursiveMode};
-use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, rect::Rect};
+use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
 use std::{
     fs,
     path::Path,
     sync::atomic::{AtomicBool, Ordering},
-    thread::sleep,
     time::{Duration, Instant},
 };
 
@@ -66,9 +66,10 @@ pub fn main() -> anyhow::Result<()> {
 
     tick(&mut state)?;
     let mut t1 = Instant::now();
-    let mut need_render = true;
 
-    loop {
+    while state.running {
+        let mut need_render = true;
+
         if FILE_CHANGED.swap(false, Ordering::Relaxed) {
             match parse_ca_rule() {
                 Ok(ca) => {
@@ -81,53 +82,23 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         if let Some(event) = state.ui.wait_event_timeout(500) {
-            need_render = true;
-            match event {
-                Event::Quit { .. } => return Ok(()),
-
-                Event::KeyDown {
-                    keycode: Some(k),
-                    repeat: false,
-                    ..
-                } => match k {
-                    Keycode::L | Keycode::Right => Player::try_move(1, 0, &mut state),
-                    Keycode::H | Keycode::Left => Player::try_move(-1, 0, &mut state),
-                    Keycode::K | Keycode::Up => Player::try_move(0, -1, &mut state),
-                    Keycode::J | Keycode::Down => Player::try_move(0, 1, &mut state),
-                    Keycode::Y => Player::try_move(-1, -1, &mut state),
-                    Keycode::U => Player::try_move(1, -1, &mut state),
-                    Keycode::B => Player::try_move(-1, 1, &mut state),
-                    Keycode::N => Player::try_move(1, 1, &mut state),
-
-                    Keycode::R => match parse_ca_rule() {
-                        Ok(ca) => set!(builder, ca, state),
-                        Err(e) => println!("ERROR {e}"),
-                    },
-
-                    Keycode::Q | Keycode::Escape => return Ok(()),
-
-                    _ => need_render = false,
-                },
-
-                Event::MouseButtonDown {
-                    mouse_btn: MouseButton::Right,
-                    x,
-                    y,
-                    ..
-                } => {
-                    let target = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
-                    let from = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
-                    let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
-                    let path = map.a_star(from, target);
-
-                    for new_pos in path.into_iter() {
-                        Player::try_move_pos(new_pos, &mut state);
-                        tick(&mut state)?;
-                        sleep(Duration::from_millis(10));
+            match map_event_in_game_state(&event) {
+                Some(action) => state.action_queue.push_back(action),
+                None => {
+                    if let Event::KeyDown {
+                        keycode: Some(Keycode::R),
+                        repeat: false,
+                        ..
+                    } = event
+                    {
+                        match parse_ca_rule() {
+                            Ok(ca) => set!(builder, ca, state),
+                            Err(e) => println!("ERROR {e}"),
+                        }
+                    } else {
+                        need_render = false;
                     }
                 }
-
-                _ => need_render = false,
             }
         }
 
@@ -138,9 +109,11 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         if need_render {
-            tick(&mut state)?;
+            state.tick()?;
         }
     }
+
+    Ok(())
 }
 
 fn tick(state: &mut State<'_>) -> anyhow::Result<()> {

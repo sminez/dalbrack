@@ -1,6 +1,7 @@
 use dalbrack::{
     Grid, Pos, TITLE,
     grid::dijkstra_map,
+    input::map_event_in_game_state,
     map::{
         Map,
         builders::{BspDungeon, BuildMap, CellularAutomata},
@@ -10,11 +11,8 @@ use dalbrack::{
     tileset::Tile,
     ui::blend,
 };
-use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, rect::Rect};
-use std::{
-    thread::sleep,
-    time::{Duration, Instant},
-};
+use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
+use std::time::Instant;
 
 const DXY: u32 = 25;
 const W: i32 = 60;
@@ -40,69 +38,40 @@ pub fn main() -> anyhow::Result<()> {
     let player_sprite = state.tile_with_named_color("@", "white");
     state.e_player = state.world.spawn((Player, pos, player_sprite));
 
-    tick(&mut state)?;
+    state.tick_with(update_ui)?;
     let mut t1 = Instant::now();
 
-    loop {
+    while state.running {
         let mut need_render = true;
-        match state.ui.wait_event() {
-            Event::Quit { .. } => return Ok(()),
 
-            Event::KeyDown {
-                keycode: Some(k),
-                repeat: false,
-                ..
-            } => match k {
-                Keycode::Num1 => set!(builder, BspDungeon, state),
-                Keycode::Num2 => set!(builder, CellularAutomata::simple(), state),
-                Keycode::Num3 => set!(builder, CellularAutomata::rogue_basin(), state),
-                Keycode::Num4 => set!(builder, CellularAutomata::diamoeba(), state),
-                Keycode::Num5 => set!(builder, CellularAutomata::invertamaze(), state),
-                Keycode::Num6 => set!(builder, CellularAutomata::mazectric(), state),
+        if let Some(event) = state.ui.wait_event_timeout(500) {
+            match map_event_in_game_state(&event) {
+                Some(action) => state.action_queue.push_back(action),
+                None => match event {
+                    Event::KeyDown {
+                        keycode: Some(k),
+                        repeat: false,
+                        ..
+                    } => match k {
+                        Keycode::Num1 => set!(builder, BspDungeon, state),
+                        Keycode::Num2 => set!(builder, CellularAutomata::simple(), state),
+                        Keycode::Num3 => set!(builder, CellularAutomata::rogue_basin(), state),
+                        Keycode::Num4 => set!(builder, CellularAutomata::diamoeba(), state),
+                        Keycode::Num5 => set!(builder, CellularAutomata::invertamaze(), state),
+                        Keycode::Num6 => set!(builder, CellularAutomata::mazectric(), state),
 
-                Keycode::L | Keycode::Right => Player::try_move(1, 0, &mut state),
-                Keycode::H | Keycode::Left => Player::try_move(-1, 0, &mut state),
-                Keycode::K | Keycode::Up => Player::try_move(0, -1, &mut state),
-                Keycode::J | Keycode::Down => Player::try_move(0, 1, &mut state),
-                Keycode::Y => Player::try_move(-1, -1, &mut state),
-                Keycode::U => Player::try_move(1, -1, &mut state),
-                Keycode::B => Player::try_move(-1, 1, &mut state),
-                Keycode::N => Player::try_move(1, 1, &mut state),
+                        Keycode::R => {
+                            let (pos, mut map) = BspDungeon.new_map(W as usize, H as usize, &state);
+                            map.explore_all();
+                            state.set_map(map);
+                            Player::set_pos(pos, &mut state);
+                        }
+                        _ => need_render = false,
+                    },
 
-                Keycode::R => {
-                    let (pos, mut map) = builder.new_map(W as usize, H as usize, &state);
-                    map.explore_all();
-                    state.set_map(map);
-                    Player::set_pos(pos, &mut state);
-                }
-
-                Keycode::RightBracket => state.ui.dxy += 5,
-                Keycode::LeftBracket => state.ui.dxy -= 5,
-
-                Keycode::Q | Keycode::Escape => return Ok(()),
-
-                _ => need_render = false,
-            },
-
-            Event::MouseButtonDown {
-                mouse_btn: MouseButton::Right,
-                x,
-                y,
-                ..
-            } => {
-                let target = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
-                let from = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
-                let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
-                let path = map.a_star(from, target);
-
-                for new_pos in path.into_iter() {
-                    Player::try_move_pos(new_pos, &mut state);
-                    tick(&mut state)?;
-                    sleep(Duration::from_millis(10));
-                }
+                    _ => need_render = false,
+                },
             }
-
-            _ => need_render = false,
         }
 
         let t2 = Instant::now();
@@ -112,12 +81,14 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         if need_render {
-            tick(&mut state)?;
+            state.tick_with(update_ui)?;
         }
     }
+
+    Ok(())
 }
 
-fn tick(state: &mut State<'_>) -> anyhow::Result<()> {
+fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
     let dmap = update_dmap(state);
     state.ui.clear();
 
@@ -135,7 +106,6 @@ fn tick(state: &mut State<'_>) -> anyhow::Result<()> {
         }
     }
     state.blit_tiles()?;
-
     state.ui.render()?;
 
     Ok(())

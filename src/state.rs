@@ -47,6 +47,22 @@ impl<'a> State<'a> {
         })
     }
 
+    pub fn tick_with(
+        &mut self,
+        update_fn: fn(&mut Self) -> anyhow::Result<()>,
+    ) -> anyhow::Result<()> {
+        if self.action_queue.is_empty() {
+            return (update_fn)(self);
+        }
+
+        while let Some(action) = self.action_queue.pop_front() {
+            action.run(self)?;
+            (update_fn)(self)?;
+        }
+
+        Ok(())
+    }
+
     pub fn tick(&mut self) -> anyhow::Result<()> {
         if self.action_queue.is_empty() {
             return self.update_ui();
