@@ -1,30 +1,44 @@
-use crate::{Pos, map::fov::Opacity, state::State, tileset::Tile};
+use crate::{
+    Pos,
+    action::{Action, ActionProvider, AvailableActions},
+    map::fov::Opacity,
+    state::State,
+    tileset::Tile,
+};
 use hecs::{Bundle, Entity};
-use rand::{Rng, rng};
 use std::cmp::{max, min};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RandomMoveAI;
 
-impl RandomMoveAI {
-    pub fn random_move(&self, pos: &mut Pos, xmax: i32, ymax: i32) {
-        let mut r = rng();
-        if !r.random_bool(0.7) {
-            return;
-        }
+impl ActionProvider for RandomMoveAI {
+    fn retain(&self) -> bool {
+        true
+    }
 
-        *pos = pos.random_offset();
-        pos.x = max(0, min(xmax, pos.x));
-        pos.y = max(0, min(ymax, pos.y));
+    fn available_actions(&mut self, entity: Entity, state: &State<'_>) -> Option<Vec<Action>> {
+        let map = state.current_map()?;
+        let (xmax, ymax) = (map.w - 1, map.h - 1);
+
+        let mut pos = state.world.get::<&Pos>(entity).ok()?.random_offset();
+        pos.x = max(0, min(xmax as i32, pos.x));
+        pos.y = max(0, min(ymax as i32, pos.y));
+        map.tile_at(pos).path_cost?;
+
+        Some(vec![Action::from(move |state: &mut State<'_>| {
+            *state.world.query_one_mut::<&mut Pos>(entity)? = pos;
+
+            Ok(())
+        })])
     }
 }
 
-#[derive(Debug, Bundle, Clone, Copy)]
+#[derive(Debug, Bundle)]
 pub struct Mob {
     pub pos: Pos,
     pub tile: Tile,
     pub opacity: Opacity,
-    pub ai: RandomMoveAI,
+    pub actions: AvailableActions,
 }
 
 impl Mob {
@@ -36,7 +50,7 @@ impl Mob {
             pos: Pos::new(x, y),
             tile,
             opacity: Opacity(0.9),
-            ai: RandomMoveAI,
+            actions: AvailableActions::from(RandomMoveAI),
         }
     }
 

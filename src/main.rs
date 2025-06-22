@@ -31,29 +31,27 @@ pub fn main() -> anyhow::Result<()> {
         .insert_one(state.e_map, builder)
         .expect("e_map to be valid");
 
-    let player_sprite = state.tile_with_named_color("@", "white");
-    state.e_player = state.world.spawn((
-        Player,
-        FovRange(30),
-        LightSource {
-            range: 12,
-            color: Color::RGB(80, 50, 20),
-        },
-        pos,
-        player_sprite,
-    ));
+    state.e_player = state.world.spawn(
+        Player::new_base_bundle(pos, FovRange(30), &state)
+            .add(LightSource {
+                range: 12,
+                color: Color::RGB(80, 50, 20),
+            })
+            .build(),
+    );
 
-    state.tick()?;
+    state.update_ui()?;
 
     while state.running {
         let event = state.ui.wait_event();
 
-        match map_event_in_game_state(&event) {
+        match map_event_in_game_state(&event, &state) {
             Some(action) => state.action_queue.push_back(action),
-            None => match map_other_events(&event) {
-                Some(action) => state.action_queue.push_back(action),
-                None => continue,
-            },
+            None => {
+                if let Some(action) = map_other_events(&event) {
+                    state.action_queue.push_back(action);
+                }
+            }
         }
 
         state.tick()?;
@@ -79,7 +77,7 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
 
                 let (pos, map) = builder.get().new_map(W as usize, H as usize, state);
                 state.set_map(map);
-                Player::set_pos(pos, state);
+                Player::warp(pos, state);
                 let lights: Vec<_> = state
                     .world
                     .query::<&LightSource>()

@@ -1,16 +1,17 @@
 //! The global state of the game
 use crate::{
     FRAME_LEN_MS, Pos,
-    action::Action,
+    action::{Action, AvailableActions},
     data_files::parse_color_palette,
     map::{
         Map,
         fov::{Fov, FovRange, LightMap, LightSource, Opacity},
     },
+    player::Player,
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
 };
-use hecs::{Entity, World};
+use hecs::{Entity, Ref, World};
 use sdl2::{pixels::Color, rect::Rect};
 use std::{
     collections::{HashMap, VecDeque},
@@ -48,8 +49,8 @@ impl<'a> State<'a> {
             ts,
             palette,
             running: true,
-            action_queue: VecDeque::new(),
             last_tick: Instant::now(),
+            action_queue: VecDeque::new(),
         })
     }
 
@@ -57,13 +58,24 @@ impl<'a> State<'a> {
         &mut self,
         update_fn: fn(&mut Self) -> anyhow::Result<()>,
     ) -> anyhow::Result<()> {
-        if self.action_queue.is_empty() {
-            self.wait_for_frame();
-            return (update_fn)(self);
-        }
+        let mut rendered = false;
 
         while let Some(action) = self.action_queue.pop_front() {
             action.run(self)?;
+            self.wait_for_frame();
+            (update_fn)(self)?;
+            rendered = true;
+        }
+
+        while let Some(action) = self.next_player_action() {
+            action.run(self)?;
+            self.run_actor_actions()?;
+            self.wait_for_frame();
+            (update_fn)(self)?;
+            rendered = true;
+        }
+
+        if !rendered {
             self.wait_for_frame();
             (update_fn)(self)?;
         }
@@ -72,15 +84,27 @@ impl<'a> State<'a> {
     }
 
     pub fn tick(&mut self) -> anyhow::Result<()> {
-        if self.action_queue.is_empty() {
-            self.wait_for_frame();
-            return self.update_ui();
-        }
+        self.tick_with(Self::update_ui)
+    }
 
-        while let Some(action) = self.action_queue.pop_front() {
+    fn next_player_action(&self) -> Option<Action> {
+        self.world
+            .get::<&mut AvailableActions>(self.e_player)
+            .ok()?
+            .next_action(self.e_player, self)
+    }
+
+    fn run_actor_actions(&mut self) -> anyhow::Result<()> {
+        let actions: Vec<_> = self
+            .world
+            .query::<&mut AvailableActions>()
+            .without::<&Player>()
+            .iter()
+            .filter_map(|(e, aa)| aa.next_action(e, self))
+            .collect();
+
+        for action in actions {
             action.run(self)?;
-            self.wait_for_frame();
-            self.update_ui()?;
         }
 
         Ok(())
@@ -96,7 +120,7 @@ impl<'a> State<'a> {
         self.last_tick = Instant::now();
     }
 
-    fn update_ui(&mut self) -> anyhow::Result<()> {
+    pub fn update_ui(&mut self) -> anyhow::Result<()> {
         self.update_fov()?;
         self.update_light_map()?;
 
@@ -125,6 +149,10 @@ impl<'a> State<'a> {
         self.world
             .insert_one(self.e_map, map)
             .expect("e_map to be valid");
+    }
+
+    pub fn current_map(&self) -> Option<Ref<Map>> {
+        self.world.get::<&Map>(self.e_map).ok()
     }
 
     /// This will no-op rather than error if we are missing the correct player components

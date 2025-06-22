@@ -1,63 +1,34 @@
 //! Systems relating to the player controlled character
-use crate::{Pos, action::Action, map::Map, state::State};
+use crate::{
+    Pos,
+    action::AvailableActions,
+    actor::Actor,
+    map::fov::{FovRange, Opacity},
+    state::State,
+};
+use hecs::EntityBuilder;
 
+#[derive(Debug)]
 pub struct Player;
 
 impl Player {
-    pub fn set_pos(p_new: Pos, state: &mut State<'_>) {
-        *state
-            .world
-            .query_one_mut::<&mut Pos>(state.e_player)
-            .unwrap() = p_new;
+    pub fn new_base_bundle(pos: Pos, fov_range: FovRange, state: &State<'_>) -> EntityBuilder {
+        let mut builder = EntityBuilder::new();
+        builder
+            .add(Player)
+            .add_bundle(Actor {
+                pos,
+                tile: state.tile_with_named_color("@", "white"),
+                opacity: Opacity(0.9),
+                actions: AvailableActions::default(),
+            })
+            .add(fov_range);
+
+        builder
     }
 
-    pub fn try_move(dx: i32, dy: i32) -> Action {
-        Action::from(move |state: &mut State<'_>| {
-            let p_new = {
-                let map = state.world.get::<&Map>(state.e_map).unwrap();
-                let pos = *state.world.get::<&Pos>(state.e_player).unwrap();
-
-                let p_new = Pos::new(pos.x + dx, pos.y + dy);
-                if map.tile_at(p_new).path_cost.is_none() {
-                    return Ok(());
-                }
-
-                p_new
-            };
-
-            *state.world.get::<&mut Pos>(state.e_player).unwrap() = p_new;
-
-            Ok(())
-        })
-    }
-
-    pub fn try_move_pos(pos: Pos) -> Action {
-        Action::from(move |state: &mut State<'_>| {
-            {
-                let map = state.world.get::<&Map>(state.e_map).unwrap();
-                if map.tile_at(pos).path_cost.is_none() {
-                    return Ok(());
-                }
-            }
-
-            *state.world.get::<&mut Pos>(state.e_player).unwrap() = pos;
-
-            Ok(())
-        })
-    }
-
-    pub fn mouse_move(mouse_x: i32, mouse_y: i32) -> Action {
-        Action::from(move |state: &mut State<'_>| {
-            let target = Pos::new(mouse_x / state.ui.dxy as i32, mouse_y / state.ui.dxy as i32);
-            let from = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
-            let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
-            let path = map.a_star_in_player_explored(from, target);
-
-            state
-                .action_queue
-                .extend(path.into_iter().map(Player::try_move_pos));
-
-            Ok(())
-        })
+    pub fn warp(new_pos: Pos, state: &State<'_>) {
+        let mut pos = state.world.get::<&mut Pos>(state.e_player).unwrap();
+        *pos = new_pos;
     }
 }

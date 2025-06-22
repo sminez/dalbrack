@@ -5,6 +5,7 @@ use dalbrack::{
     map::{
         Map,
         builders::{BuildMap, CaRule, CellularAutomata},
+        fov::FovRange,
     },
     player::Player,
     state::State,
@@ -31,7 +32,7 @@ macro_rules! set {
         let (pos, mut map) = $builder.new_map(W as usize, H as usize, &mut $state);
         map.explore_all();
         $state.set_map(map);
-        Player::set_pos(pos, &mut $state);
+        Player::warp(pos, &$state);
     }};
 }
 
@@ -42,8 +43,9 @@ pub fn main() -> anyhow::Result<()> {
     map.explore_all();
     state.set_map(map);
 
-    let player_sprite = state.tile_with_named_color("@", "white");
-    state.e_player = state.world.spawn((Player, pos, player_sprite));
+    state.e_player = state
+        .world
+        .spawn(Player::new_base_bundle(pos, FovRange(30), &state).build());
 
     // set up file watcher for the rules file
     let mut watcher = new_debouncer(
@@ -79,7 +81,7 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         if let Some(event) = state.ui.wait_event_timeout(500) {
-            match map_event_in_game_state(&event) {
+            match map_event_in_game_state(&event, &state) {
                 Some(action) => state.action_queue.push_back(action),
                 None => {
                     if let Event::KeyDown {

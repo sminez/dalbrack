@@ -1,4 +1,5 @@
 pub mod action;
+pub mod actor;
 pub mod data_files;
 pub mod grid;
 pub mod input;

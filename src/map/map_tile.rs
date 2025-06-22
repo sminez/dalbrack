@@ -47,4 +47,8 @@ impl MapTile {
     //     pub fn door(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
     //         Self::new("=", "faded_orange", Some(2), 2, 0.1, ts, palette)
     //     }
+
+    pub fn blocks_movement(&self) -> bool {
+        self.path_cost.is_none()
+    }
 }
