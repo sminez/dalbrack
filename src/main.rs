@@ -4,7 +4,7 @@ use dalbrack::{
     input::map_event_in_game_state,
     map::{
         Map,
-        builders::{BuildMap, CellularAutomata, MapBuilder},
+        builders::{BspDungeon, BuildMap, CellularAutomata, MapBuilder},
         fov::{FovRange, LightSource},
     },
     player::Player,
@@ -19,8 +19,10 @@ const H: i32 = 40;
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let mut builder = CellularAutomata::walled_cities();
-    let (pos, map) = builder.new_map(W as usize, H as usize, &state);
+    // let (pos, map) = CellularAutomata::walled_cities().new_map(W as usize, H as usize, &state);
+    // let builder = MapBuilder::from(CellularAutomata::walled_cities);
+
+    let (pos, map) = BspDungeon::default().new_map(W as usize, H as usize, &mut state);
     let builder = MapBuilder::from(CellularAutomata::walled_cities);
 
     state.set_map(map);

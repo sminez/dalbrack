@@ -8,7 +8,19 @@ pub use bsp::BspDungeon;
 pub use cellular_automata::{CaRule, CellularAutomata};
 
 pub trait BuildMap: Send + Sync {
-    fn new_map(&mut self, map_w: usize, map_h: usize, state: &State<'_>) -> (Pos, Map) {
+    #[allow(unused_variables)]
+    fn init_map(&mut self, map: &mut Map) {}
+
+    fn build(
+        &mut self,
+        map: Map,
+        state: &State<'_>,
+        snapshots: &mut Snapshots,
+    ) -> Option<(Pos, Map)>;
+
+    fn populate(&mut self, state: &mut State<'_>);
+
+    fn new_map(&mut self, map_w: usize, map_h: usize, state: &mut State<'_>) -> (Pos, Map) {
         let mut snapshots = Snapshots {
             inner: Vec::new(),
             active: false,
@@ -20,6 +32,7 @@ pub trait BuildMap: Send + Sync {
             snapshots.push(&map);
 
             if let Some(output) = self.build(map, state, &mut snapshots) {
+                self.populate(state);
                 return output;
             }
 
@@ -47,16 +60,6 @@ pub trait BuildMap: Send + Sync {
             snapshots.inner.clear();
         }
     }
-
-    #[allow(unused_variables)]
-    fn init_map(&mut self, map: &mut Map) {}
-
-    fn build(
-        &mut self,
-        map: Map,
-        state: &State<'_>,
-        snapshots: &mut Snapshots,
-    ) -> Option<(Pos, Map)>;
 }
 
 pub struct MapBuilder(pub Box<dyn Fn() -> Box<dyn BuildMap> + Send + Sync + 'static>);

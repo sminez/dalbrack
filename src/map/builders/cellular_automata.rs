@@ -61,6 +61,10 @@ impl BuildMap for CellularAutomata {
 
         None
     }
+
+    fn populate(&mut self, _state: &mut State<'_>) {
+        // TODO: need smarter spawning first
+    }
 }
 
 /// for cell p, how many WALL cells can be reached within a distance of n.

@@ -19,7 +19,7 @@ struct PathTile;
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let (pos, mut map) = BspDungeon.new_map(W as usize, H as usize, &state);
+    let (pos, mut map) = BspDungeon::default().new_map(W as usize, H as usize, &mut state);
     map.explore_all();
     state.set_map(map);
 
@@ -45,7 +45,8 @@ pub fn main() -> anyhow::Result<()> {
                         ..
                     } => match k {
                         Keycode::R => {
-                            let (pos, mut map) = BspDungeon.new_map(W as usize, H as usize, &state);
+                            let (pos, mut map) =
+                                BspDungeon::default().new_map(W as usize, H as usize, &mut state);
                             map.explore_all();
                             state.set_map(map);
                             Player::set_pos(pos, &mut state);

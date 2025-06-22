@@ -4,6 +4,7 @@ use crate::{
         Map,
         builders::{BuildMap, Snapshots},
     },
+    mob::Mob,
     rng::RngHandle,
     state::State,
 };
@@ -20,7 +21,10 @@ const MAX_DEPTH: usize = 4;
 /// minimum room ratio
 const MIN_RAT: f32 = 0.45;
 
-pub struct BspDungeon;
+#[derive(Default, Debug)]
+pub struct BspDungeon {
+    rooms: Vec<Rect>,
+}
 
 impl BuildMap for BspDungeon {
     fn build(
@@ -30,7 +34,7 @@ impl BuildMap for BspDungeon {
         snapshots: &mut Snapshots,
     ) -> Option<(Pos, Map)> {
         let mut rng = RngHandle::new();
-        let starting_room = split_and_connect(
+        let starting_room = self.split_and_connect(
             Rect::new(0, 0, map.w as u32, map.h as u32),
             0,
             &mut rng,
@@ -42,26 +46,38 @@ impl BuildMap for BspDungeon {
 
         Some((Pos::new(p.x, p.y), map))
     }
+
+    fn populate(&mut self, state: &mut State<'_>) {
+        for r in self.rooms.iter() {
+            let c = r.center();
+            Mob::spawn("f", "faded_green", c.x, c.y, state);
+        }
+    }
 }
 
-fn split_and_connect(
-    r: Rect,
-    depth: usize,
-    rng: &mut RngHandle,
-    map: &mut Map,
-    snapshots: &mut Snapshots,
-) -> Rect {
-    if depth == MAX_DEPTH {
-        return position_and_carve(r, rng, map, snapshots);
+impl BspDungeon {
+    fn split_and_connect(
+        &mut self,
+        r: Rect,
+        depth: usize,
+        rng: &mut RngHandle,
+        map: &mut Map,
+        snapshots: &mut Snapshots,
+    ) -> Rect {
+        if depth == MAX_DEPTH {
+            let r = position_and_carve(r, rng, map, snapshots);
+            self.rooms.push(r);
+            return r;
+        }
+
+        let (r1, r2) = split(r, rng);
+        let r2 = self.split_and_connect(r2, depth + 1, rng, map, snapshots);
+        let r1 = self.split_and_connect(r1, depth + 1, rng, map, snapshots);
+
+        connect(r1, r2, rng, map, snapshots);
+
+        if rng.random_bool(0.5) { r1 } else { r2 }
     }
-
-    let (r1, r2) = split(r, rng);
-    let r2 = split_and_connect(r2, depth + 1, rng, map, snapshots);
-    let r1 = split_and_connect(r1, depth + 1, rng, map, snapshots);
-
-    connect(r1, r2, rng, map, snapshots);
-
-    if rng.random_bool(0.5) { r1 } else { r2 }
 }
 
 fn aspect_ratio(w: i32, h: i32) -> f32 {

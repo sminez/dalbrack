@@ -1,5 +1,5 @@
-use crate::{Pos, state::State, tileset::Tile};
-use hecs::Bundle;
+use crate::{Pos, map::fov::Opacity, state::State, tileset::Tile};
+use hecs::{Bundle, Entity};
 use rand::{Rng, rng};
 use std::cmp::{max, min};
 
@@ -19,10 +19,11 @@ impl RandomMoveAI {
     }
 }
 
-#[derive(Debug, Bundle, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Bundle, Clone, Copy)]
 pub struct Mob {
     pub pos: Pos,
     pub tile: Tile,
+    pub opacity: Opacity,
     pub ai: RandomMoveAI,
 }
 
@@ -34,7 +35,13 @@ impl Mob {
         Self {
             pos: Pos::new(x, y),
             tile,
+            opacity: Opacity(0.9),
             ai: RandomMoveAI,
         }
+    }
+
+    pub fn spawn(ident: &str, color: &str, x: i32, y: i32, state: &mut State<'_>) -> Entity {
+        let mob = Self::new(ident, color, x, y, state);
+        state.world.spawn(mob)
     }
 }

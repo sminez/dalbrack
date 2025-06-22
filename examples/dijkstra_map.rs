@@ -21,7 +21,7 @@ const H: i32 = 40;
 macro_rules! set {
     ($builder:expr, $new:expr, $state:expr) => {{
         $builder = Box::new($new);
-        let (pos, mut map) = $builder.new_map(W as usize, H as usize, &$state);
+        let (pos, mut map) = $builder.new_map(W as usize, H as usize, &mut $state);
         map.explore_all();
         $state.set_map(map);
         Player::set_pos(pos, &mut $state);
@@ -30,8 +30,8 @@ macro_rules! set {
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let mut builder = Box::new(BspDungeon) as Box<dyn BuildMap>;
-    let (pos, mut map) = builder.new_map(W as usize, H as usize, &state);
+    let mut builder = Box::new(BspDungeon::default()) as Box<dyn BuildMap>;
+    let (pos, mut map) = builder.new_map(W as usize, H as usize, &mut state);
     map.explore_all();
     state.set_map(map);
 
@@ -53,7 +53,7 @@ pub fn main() -> anyhow::Result<()> {
                         repeat: false,
                         ..
                     } => match k {
-                        Keycode::Num1 => set!(builder, BspDungeon, state),
+                        Keycode::Num1 => set!(builder, BspDungeon::default(), state),
                         Keycode::Num2 => set!(builder, CellularAutomata::simple(), state),
                         Keycode::Num3 => set!(builder, CellularAutomata::rogue_basin(), state),
                         Keycode::Num4 => set!(builder, CellularAutomata::diamoeba(), state),
@@ -61,7 +61,8 @@ pub fn main() -> anyhow::Result<()> {
                         Keycode::Num6 => set!(builder, CellularAutomata::mazectric(), state),
 
                         Keycode::R => {
-                            let (pos, mut map) = BspDungeon.new_map(W as usize, H as usize, &state);
+                            let (pos, mut map) =
+                                builder.new_map(W as usize, H as usize, &mut state);
                             map.explore_all();
                             state.set_map(map);
                             Player::set_pos(pos, &mut state);

@@ -28,7 +28,7 @@ const H: i32 = 50;
 macro_rules! set {
     ($builder:expr, $new:expr, $state:expr) => {{
         $builder = Box::new($new);
-        let (pos, mut map) = $builder.new_map(W as usize, H as usize, &$state);
+        let (pos, mut map) = $builder.new_map(W as usize, H as usize, &mut $state);
         map.explore_all();
         $state.set_map(map);
         Player::set_pos(pos, &mut $state);
@@ -38,7 +38,7 @@ macro_rules! set {
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
     let mut builder = Box::new(parse_ca_rule()?) as Box<dyn BuildMap>;
-    let (pos, mut map) = builder.new_map(W as usize, H as usize, &state);
+    let (pos, mut map) = builder.new_map(W as usize, H as usize, &mut state);
     map.explore_all();
     state.set_map(map);
 

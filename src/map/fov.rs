@@ -17,6 +17,9 @@ const BLEND_PERC: f32 = 0.5;
 /// Smoothing factor added to radius to make the edge points "nicer"
 const R_SMOOTHING: f32 = 0.33;
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Opacity(pub f32);
+
 #[derive(Debug, Clone, Copy)]
 pub struct FovRange(pub u32);
 
@@ -27,11 +30,24 @@ pub struct Fov {
 }
 
 impl Fov {
-    pub fn new(map: &Map, from: Pos, FovRange(range): FovRange) -> Self {
+    pub fn new(
+        map: &Map,
+        objects: &HashMap<Pos, Opacity>,
+        from: Pos,
+        FovRange(range): FovRange,
+    ) -> Self {
         let r_cutoff = range as f32 + R_SMOOTHING;
         let points: HashSet<Pos> =
             RPACaster::new(from, range as i32, r_cutoff, Vis::CenterPlus, |pos| {
-                map.try_cell_at(pos).map(|idx| map.tile_defs[*idx].opacity)
+                let obj_opacity = objects.get(&pos).copied().unwrap_or_default().0;
+                map.try_cell_at(pos).map(|idx| {
+                    let opacity = map.tile_defs[*idx].opacity;
+                    if opacity > obj_opacity {
+                        opacity
+                    } else {
+                        obj_opacity
+                    }
+                })
             })
             .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
             .collect();

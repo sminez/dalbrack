@@ -45,7 +45,7 @@ pub fn main() -> anyhow::Result<()> {
                     repeat: false,
                     ..
                 } => match k {
-                    Keycode::Num1 => set!(builder, BspDungeon, maps, state),
+                    Keycode::Num1 => set!(builder, BspDungeon::default(), maps, state),
                     Keycode::Num2 => set!(builder, CellularAutomata::simple(), maps, state),
                     Keycode::Num3 => set!(builder, CellularAutomata::rogue_basin(), maps, state),
                     Keycode::Num4 => set!(builder, CellularAutomata::diamoeba(), maps, state),

@@ -5,7 +5,7 @@ use crate::{
     data_files::parse_color_palette,
     map::{
         Map,
-        fov::{Fov, FovRange, LightMap, LightSource},
+        fov::{Fov, FovRange, LightMap, LightSource, Opacity},
     },
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
@@ -135,12 +135,19 @@ impl<'a> State<'a> {
             Err(_) => return Ok(()),
         };
 
+        let objects: HashMap<Pos, Opacity> = self
+            .world
+            .query::<(&Pos, &Opacity)>()
+            .iter()
+            .map(|(_, (&pos, &op))| (pos, op))
+            .collect();
+
         let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
             Ok(map) => map,
             Err(_) => return Ok(()),
         };
 
-        let fov = Fov::new(map, pos, range);
+        let fov = Fov::new(map, &objects, pos, range);
         self.world.insert_one(self.e_map, fov)?;
 
         Ok(())
