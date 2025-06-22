@@ -3,11 +3,9 @@ use crate::{Pos, map::Map, state::State};
 
 mod bsp;
 mod cellular_automata;
-mod simple_dungeon;
 
 pub use bsp::BspDungeon;
 pub use cellular_automata::{CaRule, CellularAutomata};
-pub use simple_dungeon::SimpleDungeon;
 
 pub trait BuildMap: Send + Sync {
     fn new_map(&mut self, map_w: usize, map_h: usize, state: &State<'_>) -> (Pos, Map) {
