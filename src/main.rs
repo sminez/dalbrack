@@ -1,10 +1,10 @@
 use dalbrack::{
     Pos, TITLE,
-    action::{Action, toggle_explored},
+    action::{Action, AvailableActions, toggle_explored},
     input::map_event_in_game_state,
     map::{
         Map,
-        builders::{BspDungeon, BuildConfig, BuildMap, CellularAutomata, MapBuilder},
+        builders::{BuildConfig, BuildMap, CellularAutomata, MapBuilder},
         fov::{FovRange, LightSource},
     },
     player::Player,
@@ -20,7 +20,8 @@ const CFG: BuildConfig = BuildConfig { populated: true };
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let (pos, map) = BspDungeon::default().new_map(W as usize, H as usize, CFG, &mut state);
+    let (pos, map) =
+        CellularAutomata::walled_cities().new_map(W as usize, H as usize, CFG, &mut state);
     let builder = MapBuilder::from(CellularAutomata::walled_cities);
 
     state.set_map(map);
@@ -67,14 +68,6 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
             Keycode::Space => toggle_explored.into(),
 
             Keycode::R => Action::from(move |state: &mut State<'_>| {
-                let builder = state
-                    .world
-                    .query_one_mut::<&MapBuilder>(state.e_map)
-                    .unwrap();
-
-                let (pos, map) = builder.get().new_map(W as usize, H as usize, CFG, state);
-                state.set_map(map);
-                Player::warp(pos, state);
                 let lights: Vec<_> = state
                     .world
                     .query::<&LightSource>()
@@ -83,9 +76,29 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
                     .map(|(e, _)| e)
                     .collect();
 
-                for entity in lights.into_iter() {
+                let mobs: Vec<_> = state
+                    .world
+                    .query::<&AvailableActions>()
+                    .without::<&Player>()
+                    .iter()
+                    .map(|(e, _)| e)
+                    .collect();
+
+                for entity in lights.into_iter().chain(mobs) {
                     state.world.despawn(entity)?;
                 }
+
+                let builder = state
+                    .world
+                    .query_one_mut::<&MapBuilder>(state.e_map)
+                    .unwrap();
+
+                let (pos, map) = builder.get().new_map(W as usize, H as usize, CFG, state);
+                state.set_map(map);
+                Player::warp(pos, state);
+
+                state.update_fov()?;
+                state.update_light_map()?;
 
                 Ok(())
             }),

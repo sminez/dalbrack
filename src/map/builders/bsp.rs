@@ -30,7 +30,7 @@ impl BuildMap for BspDungeon {
     fn build(
         &mut self,
         mut map: Map,
-        _: &State<'_>,
+        _: &mut State<'_>,
         snapshots: &mut Snapshots,
     ) -> Option<(Pos, Map)> {
         let mut rng = RngHandle::new();

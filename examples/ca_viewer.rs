@@ -208,6 +208,7 @@ fn parse_ca_rule() -> anyhow::Result<CellularAutomata> {
         p_initial_floor,
         iterations,
         rule: CaRule::LifeLike { born, survive },
+        regions: Default::default(),
     })
 }
 

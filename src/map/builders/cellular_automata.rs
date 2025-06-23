@@ -9,18 +9,25 @@
 //! https://conwaylife.com/wiki/Isotropic_non-totalistic_rule
 use crate::{
     Grid, Pos,
+    grid::dijkstra_map,
     map::{
         FLOOR, Map, WALL,
-        builders::{BuildMap, Snapshots},
+        builders::{BuildMap, Snapshots, voronoi_regions},
     },
+    mob::Mob,
     rng::RngHandle,
     state::State,
 };
+use rand::Rng;
+
+const MIN_FLOOR_PERC: f32 = 0.45;
+const N_SEEDS: usize = 16;
 
 pub struct CellularAutomata {
     pub p_initial_floor: u16,
     pub iterations: usize,
     pub rule: CaRule,
+    pub regions: Vec<Vec<Pos>>,
 }
 
 impl Default for CellularAutomata {
@@ -43,7 +50,7 @@ impl BuildMap for CellularAutomata {
     fn build(
         &mut self,
         mut map: Map,
-        _: &State<'_>,
+        state: &mut State<'_>,
         snapshots: &mut Snapshots,
     ) -> Option<(Pos, Map)> {
         for i in 0..self.iterations {
@@ -53,17 +60,49 @@ impl BuildMap for CellularAutomata {
 
         let mut pos = Pos::new(map.w as i32 / 2, map.h as i32 / 2);
         while pos.x >= 0 {
-            if map[pos] == FLOOR {
-                return Some((pos, map));
+            if map[pos] != FLOOR {
+                pos.x -= 1;
+                continue;
             }
-            pos.x -= 1;
+
+            // Fill in unreachable regions
+            let dmap = dijkstra_map(&map.tiles, &[(pos, 0)], |p| map.tile_at(p).path_cost);
+            for (i, cost) in dmap.cells.into_iter().enumerate() {
+                if cost == i32::MAX {
+                    map[i] = WALL;
+                }
+            }
+
+            let n_floor = map.tiles.cells.iter().filter(|&&t| t == FLOOR).count();
+            let p_floor = n_floor as f32 / map.tiles.cells.len() as f32;
+
+            if p_floor < MIN_FLOOR_PERC {
+                return None;
+            }
+
+            let points = map.cells.iter().enumerate().flat_map(|(i, idx)| {
+                if *idx > 0 {
+                    let x = i % map.w;
+                    let y = i / map.w;
+                    Some(Pos::new(x as i32, y as i32))
+                } else {
+                    None
+                }
+            });
+
+            self.regions = voronoi_regions(N_SEEDS, map.w, map.h, points, &mut state.rng);
+
+            return Some((pos, map));
         }
 
         None
     }
 
-    fn populate(&mut self, _state: &mut State<'_>) {
-        // TODO: need smarter spawning first
+    fn populate(&mut self, state: &mut State<'_>) {
+        for r in self.regions.iter() {
+            let p = r[state.rng.random_range(0..r.len())];
+            Mob::spawn("f", "faded_green", p.x, p.y, state);
+        }
     }
 }
 
@@ -142,6 +181,7 @@ macro_rules! rule {
                     p_initial_floor: $p_floor,
                     iterations: $iterations,
                     rule: CaRule::$name(),
+                    regions: Default::default(),
                 }
             }
         }
@@ -164,6 +204,7 @@ macro_rules! rule {
                     p_initial_floor: $p_floor,
                     iterations: $iterations,
                     rule: CaRule::Fn($name),
+                    regions: Default::default(),
                 }
             }
         }

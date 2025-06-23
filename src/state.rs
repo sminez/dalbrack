@@ -8,6 +8,7 @@ use crate::{
         fov::{Fov, FovRange, LightMap, LightSource, Opacity},
     },
     player::Player,
+    rng::RngHandle,
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
 };
@@ -20,6 +21,7 @@ use std::{
 };
 
 pub struct State<'a> {
+    pub rng: RngHandle,
     pub world: World,
     pub e_player: Entity,
     pub e_map: Entity,
@@ -43,6 +45,7 @@ impl<'a> State<'a> {
         let e_map = world.spawn(());
 
         Ok(State {
+            rng: RngHandle::new(),
             world,
             e_player,
             e_map,

@@ -16,7 +16,7 @@ pub trait BuildMap: Send + Sync {
     fn build(
         &mut self,
         map: Map,
-        state: &State<'_>,
+        state: &mut State<'_>,
         snapshots: &mut Snapshots,
     ) -> Option<(Pos, Map)>;
 
@@ -50,7 +50,7 @@ pub trait BuildMap: Send + Sync {
         }
     }
 
-    fn trace_build(&mut self, map_w: usize, map_h: usize, state: &State<'_>) -> Vec<Map> {
+    fn trace_build(&mut self, map_w: usize, map_h: usize, state: &mut State<'_>) -> Vec<Map> {
         let mut snapshots = Snapshots {
             inner: Vec::new(),
             active: true,

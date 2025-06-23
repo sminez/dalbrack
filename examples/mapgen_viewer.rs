@@ -14,7 +14,7 @@ const FRAME_LEN: u128 = 100;
 macro_rules! set {
     ($builder:expr, $new:expr, $maps:expr, $state:expr) => {{
         $builder = Box::new($new);
-        $maps = $builder.trace_build(W as usize, H as usize, &$state);
+        $maps = $builder.trace_build(W as usize, H as usize, &mut $state);
         $maps.reverse();
     }};
 }
@@ -22,7 +22,7 @@ macro_rules! set {
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
     let mut builder = Box::new(CellularAutomata::default()) as Box<dyn BuildMap>;
-    let mut maps = builder.trace_build(W as usize, H as usize, &state);
+    let mut maps = builder.trace_build(W as usize, H as usize, &mut state);
     maps.reverse();
 
     if let Some(map) = maps.pop() {
@@ -56,7 +56,7 @@ pub fn main() -> anyhow::Result<()> {
                     Keycode::Num9 => set!(builder, CellularAutomata::coagulations(), maps, state),
 
                     Keycode::R => {
-                        maps = builder.trace_build(W as usize, H as usize, &state);
+                        maps = builder.trace_build(W as usize, H as usize, &mut state);
                         maps.reverse();
                     }
 
