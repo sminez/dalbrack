@@ -5,7 +5,6 @@ use dalbrack::{
     map::{
         Map,
         builders::{BuildConfig, BuildMap, CaRule, CellularAutomata},
-        fov::FovRange,
     },
     player::Player,
     state::State,
@@ -46,7 +45,7 @@ pub fn main() -> anyhow::Result<()> {
 
     state.e_player = state
         .world
-        .spawn(Player::new_base_bundle(pos, FovRange(30), &state).build());
+        .spawn(Player::new_bundle_without_fov(pos, &state).build());
 
     // set up file watcher for the rules file
     let mut watcher = new_debouncer(

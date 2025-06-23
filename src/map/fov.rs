@@ -9,7 +9,7 @@ use sdl2::pixels::Color;
 use std::collections::{HashMap, HashSet};
 
 /// Scaling factor for inverse-square falloff
-const DIST_SCALE: f32 = 0.15;
+const DIST_SCALE: f32 = 0.03;
 /// Exponent to correct with when r^2 drops below 1.0
 const EXP_FALLOFF: f32 = 0.11;
 /// % of original color to use when blending light levels

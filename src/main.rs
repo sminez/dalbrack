@@ -29,7 +29,7 @@ pub fn main() -> anyhow::Result<()> {
     state.e_player = state.world.spawn(
         Player::new_base_bundle(pos, FovRange(30), &state)
             .add(LightSource {
-                range: 12,
+                range: 18,
                 color: Color::RGB(80, 50, 20),
             })
             .build(),

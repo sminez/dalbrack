@@ -13,16 +13,20 @@ pub struct Player;
 
 impl Player {
     pub fn new_base_bundle(pos: Pos, fov_range: FovRange, state: &State<'_>) -> EntityBuilder {
-        let mut builder = EntityBuilder::new();
+        let mut builder = Self::new_bundle_without_fov(pos, state);
+        builder.add(fov_range);
+
         builder
-            .add(Player)
-            .add_bundle(Actor {
-                pos,
-                tile: state.tile_with_named_color("@", "white"),
-                opacity: Opacity(0.9),
-                actions: AvailableActions::default(),
-            })
-            .add(fov_range);
+    }
+
+    pub fn new_bundle_without_fov(pos: Pos, state: &State<'_>) -> EntityBuilder {
+        let mut builder = EntityBuilder::new();
+        builder.add(Player).add_bundle(Actor {
+            pos,
+            tile: state.tile_with_named_color("@", "white"),
+            opacity: Opacity(0.9),
+            actions: AvailableActions::default(),
+        });
 
         builder
     }

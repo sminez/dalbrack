@@ -10,6 +10,11 @@
 - UI
 - player / creature stats
 
+### Light Map
+- maybe try allowing more permissive illumination if the light source is between the player
+  and the object it is hitting?
+  - This would need to be done while building the map at the source level
+
 ### Blitting
 The current behaviour just looks for:
   - the map
