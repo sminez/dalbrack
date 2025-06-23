@@ -56,7 +56,7 @@ impl<'a> State<'a> {
 
     pub fn tick_with(
         &mut self,
-        update_fn: fn(&mut Self) -> anyhow::Result<()>,
+        update_fn: impl Fn(&mut Self) -> anyhow::Result<()>,
     ) -> anyhow::Result<()> {
         let mut rendered = false;
 
