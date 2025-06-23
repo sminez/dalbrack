@@ -4,15 +4,20 @@ use dalbrack::{
     input::map_event_in_game_state,
     map::{
         Map,
-        builders::{BuildConfig, BuildMap, CaRule, CellularAutomata},
+        builders::{
+            BuildConfig, BuildMap, CaRule, CellularAutomata, voronoi_regions_from_seeds,
+            voronoi_seeds,
+        },
     },
     player::Player,
+    rng::RngHandle,
     state::State,
     tileset::Tile,
     ui::blend,
 };
 use notify_debouncer_full::{DebounceEventResult, new_debouncer, notify::RecursiveMode};
-use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
+use rand::Rng;
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
 use std::{
     fs,
     path::Path,
@@ -25,6 +30,7 @@ const DXY: u32 = 25;
 const W: i32 = 80;
 const H: i32 = 50;
 const CFG: BuildConfig = BuildConfig { populated: false };
+const N_GROUPS: usize = 16;
 
 macro_rules! set {
     ($builder:expr, $new:expr, $state:expr) => {{
@@ -47,6 +53,20 @@ pub fn main() -> anyhow::Result<()> {
         .world
         .spawn(Player::new_bundle_without_fov(pos, &state).build());
 
+    // data for voronoi groups
+    let mut rng = RngHandle::new();
+    let mut seeds = voronoi_seeds(N_GROUPS, W as usize, H as usize, &mut rng);
+    let colors: Vec<Color> = (0..N_GROUPS)
+        .map(|_| {
+            Color::RGB(
+                rng.random_range(60..150),
+                rng.random_range(60..150),
+                rng.random_range(60..150),
+            )
+        })
+        .collect();
+    let mut use_voronoi = true;
+
     // set up file watcher for the rules file
     let mut watcher = new_debouncer(
         Duration::from_millis(500),
@@ -66,14 +86,15 @@ pub fn main() -> anyhow::Result<()> {
     )?;
     watcher.watch(Path::new("data"), RecursiveMode::NonRecursive)?;
 
-    state.tick_with(update_ui)?;
+    state.tick_with(|state| update_ui(&seeds, &colors, use_voronoi, state))?;
 
     while state.running {
         if FILE_CHANGED.swap(false, Ordering::Relaxed) {
             match parse_ca_rule() {
                 Ok(ca) => {
                     set!(builder, ca, state);
-                    update_ui(&mut state)?;
+                    seeds = voronoi_seeds(N_GROUPS, W as usize, H as usize, &mut rng);
+                    update_ui(&seeds, &colors, use_voronoi, &mut state)?;
                     continue;
                 }
                 Err(e) => println!("ERROR {e}"),
@@ -89,9 +110,24 @@ pub fn main() -> anyhow::Result<()> {
                         repeat: false,
                         ..
                     } => match parse_ca_rule() {
-                        Ok(ca) => set!(builder, ca, state),
+                        Ok(ca) => {
+                            seeds = voronoi_seeds(N_GROUPS, W as usize, H as usize, &mut rng);
+                            set!(builder, ca, state);
+                        }
                         Err(e) => println!("ERROR {e}"),
                     },
+
+                    Event::KeyDown {
+                        keycode: Some(Keycode::V),
+                        repeat: false,
+                        ..
+                    } => use_voronoi = true,
+
+                    Event::KeyDown {
+                        keycode: Some(Keycode::D),
+                        repeat: false,
+                        ..
+                    } => use_voronoi = false,
 
                     Event::MouseMotion { .. } => continue,
                     _ => (),
@@ -99,14 +135,18 @@ pub fn main() -> anyhow::Result<()> {
             }
         }
 
-        state.tick_with(update_ui)?;
+        state.tick_with(|state| update_ui(&seeds, &colors, use_voronoi, state))?;
     }
 
     Ok(())
 }
 
-fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
-    let dmap = update_dmap(state);
+fn update_ui(
+    seeds: &[Pos],
+    colors: &[Color],
+    use_voronoi: bool,
+    state: &mut State<'_>,
+) -> anyhow::Result<()> {
     state.ui.clear();
 
     let mut r = Rect::new(0, 0, state.ui.dxy, state.ui.dxy);
@@ -114,14 +154,25 @@ fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
     r.x = 0;
     r.y = 0;
 
-    for (y, line) in dmap.cells.chunks(dmap.w).enumerate() {
-        for (x, tile) in line.iter().enumerate() {
-            r.x = x as i32 * dxy;
-            r.y = y as i32 * dxy;
+    if use_voronoi {
+        for (pos, tile) in color_regions(seeds, colors, state).into_iter() {
+            r.x = pos.x * dxy;
+            r.y = pos.y * dxy;
 
-            state.ts.blit_tile(tile, r, &mut state.ui.buf)?;
+            state.ts.blit_tile(&tile, r, &mut state.ui.buf)?;
+        }
+    } else {
+        let dmap = update_dmap(state);
+        for (y, line) in dmap.cells.chunks(dmap.w).enumerate() {
+            for (x, tile) in line.iter().enumerate() {
+                r.x = x as i32 * dxy;
+                r.y = y as i32 * dxy;
+
+                state.ts.blit_tile(tile, r, &mut state.ui.buf)?;
+            }
         }
     }
+
     state.blit_map()?;
     state.blit_tiles()?;
     state.ui.render()?;
@@ -201,4 +252,27 @@ fn update_dmap(state: &mut State<'_>) -> Grid<Tile> {
         w: raw.w,
         h: raw.h,
     }
+}
+
+fn color_regions(seeds: &[Pos], colors: &[Color], state: &State<'_>) -> Vec<(Pos, Tile)> {
+    let map = state.world.get::<&Map>(state.e_map).unwrap();
+    let points = map.cells.iter().enumerate().flat_map(|(i, idx)| {
+        if *idx > 0 {
+            let x = i % map.w;
+            let y = i / map.w;
+            Some(Pos::new(x as i32, y as i32))
+        } else {
+            None
+        }
+    });
+
+    voronoi_regions_from_seeds(seeds, points)
+        .into_iter()
+        .enumerate()
+        .flat_map(|(i, group)| {
+            group
+                .into_iter()
+                .map(move |p| (p, state.tile_with_color("square", colors[i])))
+        })
+        .collect()
 }

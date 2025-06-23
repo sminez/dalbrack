@@ -1,3 +1,4 @@
+use crate::Pos;
 use rand::{Rng as _, rngs::ThreadRng};
 use sdl2::rect::Rect;
 use std::ops::{Deref, DerefMut};
@@ -26,7 +27,7 @@ impl RngHandle {
         self.rng.random_range(1..=100)
     }
 
-    pub fn random_point(&mut self, r: Rect, offset: i32) -> (i32, i32) {
+    pub fn random_point(&mut self, r: Rect, offset: i32) -> Pos {
         let rx = (r.x + offset)..(r.x + r.w - offset);
         let ry = (r.y + offset)..(r.y + r.h - offset);
 
@@ -41,7 +42,7 @@ impl RngHandle {
             self.rng.random_range(ry)
         };
 
-        (x, y)
+        Pos::new(x, y)
     }
 }
 

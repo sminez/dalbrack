@@ -3,9 +3,11 @@ use crate::{Pos, map::Map, state::State};
 
 mod bsp;
 mod cellular_automata;
+mod voronoi;
 
 pub use bsp::BspDungeon;
 pub use cellular_automata::{CaRule, CellularAutomata};
+pub use voronoi::{voronoi_regions, voronoi_regions_from_seeds, voronoi_seeds};
 
 pub trait BuildMap: Send + Sync {
     #[allow(unused_variables)]

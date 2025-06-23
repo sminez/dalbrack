@@ -134,8 +134,8 @@ fn position_and_carve(
 }
 
 fn connect(r1: Rect, r2: Rect, rng: &mut RngHandle, map: &mut Map, snapshots: &mut Snapshots) {
-    let (x1, y1) = rng.random_point(r1, 1);
-    let (x2, y2) = rng.random_point(r2, 1);
+    let Pos { x: x1, y: y1 } = rng.random_point(r1, 1);
+    let Pos { x: x2, y: y2 } = rng.random_point(r2, 1);
 
     if rng.random_bool(0.5) {
         map.carve_h_tunnel(x1, x2, y1);
