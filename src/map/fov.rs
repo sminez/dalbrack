@@ -27,6 +27,7 @@ pub struct Fov {
     pub points: HashSet<Pos>,
     pub from: Pos,
     pub r_cutoff: f32,
+    pub dirty: bool,
 }
 
 impl Fov {
@@ -56,6 +57,7 @@ impl Fov {
             points,
             from,
             r_cutoff,
+            dirty: false,
         }
     }
 
@@ -75,6 +77,7 @@ pub struct LightSource {
 
 pub struct LightMap {
     pub points: HashMap<Pos, Color>,
+    pub c_hidden: Color,
 }
 
 impl LightMap {
@@ -82,6 +85,7 @@ impl LightMap {
         map: &Map,
         fov: &Fov,
         sources: impl Iterator<Item = (&'a Pos, &'a LightSource)>,
+        c_hidden: Color,
     ) -> Self {
         let mut points = HashMap::with_capacity(fov.points.len());
 
@@ -90,7 +94,7 @@ impl LightMap {
                 continue;
             }
 
-            let lm = Self::new(map, *from, fov, *source);
+            let lm = Self::new(map, *from, fov, *source, c_hidden);
             for (p, color) in lm.points.into_iter() {
                 points
                     .entry(p)
@@ -101,10 +105,16 @@ impl LightMap {
             }
         }
 
-        LightMap { points }
+        LightMap { points, c_hidden }
     }
 
-    pub fn new(map: &Map, from: Pos, fov: &Fov, LightSource { range, color }: LightSource) -> Self {
+    pub fn new(
+        map: &Map,
+        from: Pos,
+        fov: &Fov,
+        LightSource { range, color }: LightSource,
+        c_hidden: Color,
+    ) -> Self {
         let r_cutoff = range as f32 + R_SMOOTHING;
         let points: HashMap<Pos, Color> =
             RPACaster::new(from, range as i32, r_cutoff, Vis::CenterPlus, |pos| {
@@ -129,13 +139,16 @@ impl LightMap {
             })
             .collect();
 
-        LightMap { points }
+        LightMap { points, c_hidden }
     }
 
-    pub fn apply_light_level(&self, p: Pos, color: Color) -> Option<Color> {
-        let light_color = self.points.get(&p)?;
+    pub fn apply_light_level(&self, p: Pos, color: Color) -> Color {
+        let light_color = match self.points.get(&p) {
+            Some(c) => *c,
+            None => return self.c_hidden,
+        };
 
-        Some(blend(color, *light_color, BLEND_PERC))
+        blend(color, light_color, BLEND_PERC)
     }
 }
 

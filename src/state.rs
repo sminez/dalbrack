@@ -36,7 +36,8 @@ impl<'a> State<'a> {
         let ts = TileSet::default();
         let palette = parse_color_palette()?;
         let bg = *palette.get("black").unwrap();
-        let ui = Sdl2UI::init(w, h, dxy, window_title, bg)?;
+        let c_hidden = *palette.get("hidden").unwrap();
+        let ui = Sdl2UI::init(w, h, dxy, window_title, bg, c_hidden)?;
         let mut world = World::new();
         let e_player = world.spawn(());
         let e_map = world.spawn(());
@@ -169,6 +170,11 @@ impl<'a> State<'a> {
     /// This will no-op rather than error if we are missing the correct player components
     /// or if the map is missing.
     pub fn update_fov(&mut self) -> anyhow::Result<()> {
+        match self.world.query_one_mut::<&Fov>(self.e_player) {
+            Ok(fov) if !fov.dirty => return Ok(()), // nothing to compute
+            _ => (),
+        }
+
         let (pos, range) = match self.world.query_one_mut::<(&Pos, &FovRange)>(self.e_player) {
             Ok((pos, range)) => (*pos, *range),
             Err(_) => return Ok(()),
@@ -187,29 +193,30 @@ impl<'a> State<'a> {
         };
 
         let fov = Fov::new(map, &objects, pos, range);
-        self.world.insert_one(self.e_map, fov)?;
+        self.world.insert_one(self.e_player, fov)?;
 
         Ok(())
     }
 
     pub fn update_light_map(&mut self) -> anyhow::Result<()> {
         let light_map = {
-            let mut q = match self.world.query_one::<(&mut Map, &Fov)>(self.e_map) {
-                Ok(q) => q,
+            let fov = match self.world.get::<&Fov>(self.e_player) {
+                Ok(fov) => fov,
                 Err(_) => return Ok(()),
             };
-
-            let (map, fov) = match q.get() {
-                Some((map, fov)) => (map, fov),
-                None => return Ok(()),
-            };
-
+            let mut map = self.world.get::<&mut Map>(self.e_map).unwrap();
             let mut sources = self.world.query::<(&Pos, &LightSource)>();
-            let light_map = LightMap::from_sources(map, fov, sources.iter().map(|(_, s)| s));
+            let light_map = LightMap::from_sources(
+                &map,
+                &fov,
+                sources.iter().map(|(_, s)| s),
+                self.ui.c_hidden,
+            );
 
             for p in fov.points.iter() {
                 if light_map.points.contains_key(p) {
-                    map.explored.insert(map.pos_idx(*p));
+                    let idx = map.pos_idx(*p);
+                    map.explored.insert(idx);
                 }
             }
 
@@ -230,27 +237,20 @@ impl<'a> State<'a> {
     }
 
     pub fn blit_map(&mut self) -> anyhow::Result<()> {
-        let (map, fov_and_light_map) = if self
-            .world
-            .satisfies::<(&Map, &Fov, &LightMap)>(self.e_map)?
-        {
-            self.world
-                .query_one_mut::<(&mut Map, &Fov, &LightMap)>(self.e_map)
-                .map(|(map, fov, light_map)| (map, Some((fov, light_map))))?
-        } else {
-            match self.world.query_one_mut::<&mut Map>(self.e_map) {
-                Ok(map) => (map, None),
-                Err(_) => return Ok(()), // no map to render
-            }
+        let fov = self.world.get::<&Fov>(self.e_player).ok();
+        let map = match self.world.get::<&mut Map>(self.e_map) {
+            Ok(map) => map,
+            Err(_) => return Ok(()), // no map to render
+        };
+        let fov_and_light_map = match self.world.get::<&LightMap>(self.e_map) {
+            Ok(lm) => fov.map(|fov| (fov, lm)),
+            Err(_) => None,
         };
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
         r.x = 0;
         r.y = 0;
-
-        // FIXME: this needs to be stored in the light map once its written
-        let black = *self.palette.get("hidden").unwrap();
 
         for (y, line) in map.cells.chunks(map.w).enumerate() {
             for (x, tile_idx) in line.iter().enumerate() {
@@ -261,11 +261,9 @@ impl<'a> State<'a> {
                 if let Some((fov, light_map)) = fov_and_light_map.as_ref() {
                     let p = Pos::new(x as i32, y as i32);
                     if fov.points.contains(&p) {
-                        tile.t.color = light_map
-                            .apply_light_level(p, tile.t.color)
-                            .unwrap_or(black);
+                        tile.t.color = light_map.apply_light_level(p, tile.t.color);
                     } else {
-                        tile.t.color = black;
+                        tile.t.color = light_map.c_hidden;
                     }
                 }
 
@@ -283,7 +281,7 @@ impl<'a> State<'a> {
         let dxy = self.ui.dxy as i32;
 
         for (_entity, (pos, tile)) in self.world.query::<(&Pos, &Tile)>().iter() {
-            if let Some(fov) = self.world.query_one::<&Fov>(self.e_map).unwrap().get() {
+            if let Ok(fov) = self.world.get::<&Fov>(self.e_player) {
                 if !fov.points.contains(pos) {
                     continue;
                 }

@@ -19,11 +19,19 @@ pub struct Sdl2UI<'a> {
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
     bg: Color,
+    pub c_hidden: Color,
     debug: bool,
 }
 
 impl<'a> Sdl2UI<'a> {
-    pub fn init(w: u32, h: u32, dxy: u32, window_title: &str, bg: Color) -> anyhow::Result<Self> {
+    pub fn init(
+        w: u32,
+        h: u32,
+        dxy: u32,
+        window_title: &str,
+        bg: Color,
+        c_hidden: Color,
+    ) -> anyhow::Result<Self> {
         let ctx = sdl2::init().map_err(|e| anyhow!("{e}"))?;
         let video_ss = ctx.video().map_err(|e| anyhow!("{e}"))?;
 
@@ -53,6 +61,7 @@ impl<'a> Sdl2UI<'a> {
             tc,
             evts,
             bg,
+            c_hidden,
             debug: false,
         })
     }

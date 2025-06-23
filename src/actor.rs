@@ -1,7 +1,10 @@
 use crate::{
     Pos,
     action::{Action, ActionProvider, AvailableActions},
-    map::{Map, fov::Opacity},
+    map::{
+        Map,
+        fov::{Fov, Opacity},
+    },
     state::State,
     tileset::Tile,
 };
@@ -63,6 +66,9 @@ impl ActionProvider for Move1 {
 
         Some(vec![Action::from(move |state: &mut State<'_>| {
             *state.world.get::<&mut Pos>(entity).unwrap() = pos;
+            if let Ok(mut fov) = state.world.get::<&mut Fov>(entity) {
+                fov.dirty = true;
+            };
 
             Ok(())
         })])
@@ -121,6 +127,9 @@ impl ActionProvider for FollowPath {
 
         Some(vec![Action::from(move |state: &mut State<'_>| {
             *state.world.get::<&mut Pos>(entity).unwrap() = pos;
+            if let Ok(mut fov) = state.world.get::<&mut Fov>(entity) {
+                fov.dirty = true;
+            };
 
             Ok(())
         })])
