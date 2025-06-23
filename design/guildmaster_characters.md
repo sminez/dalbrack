@@ -1,3 +1,9 @@
+> These are character ideas for the Guildmaster game that I had in mind previously.
+> The idea there was to build up a guild in a town and then delve the depths of
+> nearby dungeons with a party of characters, but getting the party AI to work out
+> well would be a bit much so I'm now considering these as potential town members
+> instead?
+
 Character Classes
 =================
 Different classes should have noticeable differences in Gameplay

@@ -9,3 +9,19 @@
   - design/notes.md has links to some references
 - UI
 - player / creature stats
+
+### Blitting
+The current behaviour just looks for:
+  - the map
+  - entities containing a tile & position
+  - entities containing text & position
+
+This works to get started but doesn't enforce a stacking order and needs to be smarter.
+At the very least it should be something like:
+  - the map
+  - environmental elements
+  - items
+  - creatures
+  - particles & effects
+  - free text
+  - the UI
