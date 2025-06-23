@@ -13,7 +13,6 @@ use dalbrack::{
     ui::blend,
 };
 use sdl2::{event::Event, keyboard::Keycode, rect::Rect};
-use std::time::Instant;
 
 const DXY: u32 = 25;
 const W: i32 = 60;
@@ -42,12 +41,9 @@ pub fn main() -> anyhow::Result<()> {
         .spawn(Player::new_base_bundle(pos, FovRange(30), &state).build());
 
     state.tick_with(update_ui)?;
-    let mut t1 = Instant::now();
 
     while state.running {
-        let mut need_render = true;
-
-        if let Some(event) = state.ui.wait_event_timeout(500) {
+        if let Some(event) = state.ui.poll_event() {
             match map_event_in_game_state(&event, &state) {
                 Some(action) => state.action_queue.push_back(action),
                 None => match event {
@@ -70,23 +66,16 @@ pub fn main() -> anyhow::Result<()> {
                             state.set_map(map);
                             Player::warp(pos, &state);
                         }
-                        _ => need_render = false,
+                        _ => (),
                     },
 
-                    _ => need_render = false,
+                    Event::MouseMotion { .. } => continue,
+                    _ => (),
                 },
             }
         }
 
-        let t2 = Instant::now();
-        if t2.duration_since(t1).as_secs_f64() >= 1.0 {
-            t1 = t2;
-            need_render = true;
-        }
-
-        if need_render {
-            state.tick_with(update_ui)?;
-        }
+        state.tick_with(update_ui)?;
     }
 
     Ok(())
@@ -115,13 +104,13 @@ fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn update_dmap(state: &mut State<'_>) -> Grid<Tile> {
-    let pos = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
-    let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
+fn update_dmap(state: &State<'_>) -> Grid<Tile> {
+    let pos = *state.world.get::<&Pos>(state.e_player).unwrap();
+    let map = state.world.get::<&mut Map>(state.e_map).unwrap();
     let raw = dijkstra_map(&map.tiles, &[(pos, 0)], |p| map.tile_at(p).path_cost);
 
-    let near = *state.palette.get("autumn_red").unwrap();
-    let far = *state.palette.get("wave_blue_2").unwrap();
+    let near = *state.palette.get("autumnRed").unwrap();
+    let far = *state.palette.get("waveBlue2").unwrap();
     let hidden = *state.palette.get("hidden").unwrap();
 
     let min = *raw.cells.iter().min().unwrap();

@@ -84,19 +84,19 @@ pub fn main() -> anyhow::Result<()> {
         if let Some(event) = state.ui.poll_event() {
             match map_event_in_game_state(&event, &state) {
                 Some(action) => state.action_queue.push_back(action),
-                None => {
-                    if let Event::KeyDown {
+                None => match event {
+                    Event::KeyDown {
                         keycode: Some(Keycode::R),
                         repeat: false,
                         ..
-                    } = event
-                    {
-                        match parse_ca_rule() {
-                            Ok(ca) => set!(builder, ca, state),
-                            Err(e) => println!("ERROR {e}"),
-                        }
-                    }
-                }
+                    } => match parse_ca_rule() {
+                        Ok(ca) => set!(builder, ca, state),
+                        Err(e) => println!("ERROR {e}"),
+                    },
+
+                    Event::MouseMotion { .. } => continue,
+                    _ => (),
+                },
             }
         }
 
@@ -175,8 +175,8 @@ fn update_dmap(state: &mut State<'_>) -> Grid<Tile> {
     let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
     let raw = dijkstra_map(&map.tiles, &[(pos, 0)], |p| map.tile_at(p).path_cost);
 
-    let near = *state.palette.get("autumn_red").unwrap();
-    let far = *state.palette.get("wave_blue_2").unwrap();
+    let near = *state.palette.get("autumnRed").unwrap();
+    let far = *state.palette.get("waveBlue2").unwrap();
     let hidden = *state.palette.get("hidden").unwrap();
 
     let min = *raw.cells.iter().min().unwrap();
