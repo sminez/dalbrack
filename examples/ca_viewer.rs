@@ -123,6 +123,7 @@ fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
             state.ts.blit_tile(tile, r, &mut state.ui.buf)?;
         }
     }
+    state.blit_map()?;
     state.blit_tiles()?;
     state.ui.render()?;
 
