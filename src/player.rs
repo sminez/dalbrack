@@ -24,7 +24,7 @@ impl Player {
         builder.add(Player).add_bundle(Actor {
             pos,
             tile: state.tile_with_named_color("@", "white"),
-            opacity: Opacity(0.9),
+            opacity: Opacity(0.7),
             actions: AvailableActions::default(),
         });
 

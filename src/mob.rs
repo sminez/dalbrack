@@ -1,11 +1,11 @@
 use crate::{
     Pos,
     action::{Action, ActionProvider, AvailableActions},
+    actor::Actor,
     map::fov::Opacity,
     state::State,
-    tileset::Tile,
 };
-use hecs::{Bundle, Entity};
+use hecs::{Entity, EntityBuilder};
 use std::cmp::{max, min};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,29 +33,25 @@ impl ActionProvider for RandomMoveAI {
     }
 }
 
-#[derive(Debug, Bundle)]
-pub struct Mob {
-    pub pos: Pos,
-    pub tile: Tile,
-    pub opacity: Opacity,
-    pub actions: AvailableActions,
-}
+#[derive(Debug)]
+pub struct Mob;
 
 impl Mob {
-    pub fn new(ident: &str, color: &str, x: i32, y: i32, state: &State<'_>) -> Self {
+    pub fn spawn(ident: &str, color: &str, x: i32, y: i32, state: &mut State<'_>) -> Entity {
         let mut tile = state.ts.tile(ident).unwrap();
         tile.color = *state.palette.get(color).unwrap();
 
-        Self {
-            pos: Pos::new(x, y),
-            tile,
-            opacity: Opacity(0.9),
-            actions: AvailableActions::from(RandomMoveAI),
-        }
-    }
-
-    pub fn spawn(ident: &str, color: &str, x: i32, y: i32, state: &mut State<'_>) -> Entity {
-        let mob = Self::new(ident, color, x, y, state);
-        state.world.spawn(mob)
+        let mut builder = EntityBuilder::new();
+        state.world.spawn(
+            builder
+                .add(Mob)
+                .add_bundle(Actor {
+                    pos: Pos::new(x, y),
+                    tile,
+                    opacity: Opacity(0.7),
+                    actions: AvailableActions::from(RandomMoveAI),
+                })
+                .build(),
+        )
     }
 }
