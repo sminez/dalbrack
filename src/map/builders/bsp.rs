@@ -4,7 +4,7 @@ use crate::{
         Map,
         builders::{BuildMap, Snapshots},
     },
-    mob::Mob,
+    mob::{Mob, PIXIE},
     rng::RngHandle,
     state::State,
 };
@@ -50,7 +50,7 @@ impl BuildMap for BspDungeon {
     fn populate(&mut self, state: &mut State<'_>) {
         for r in self.rooms.iter() {
             let c = r.center();
-            Mob::spawn("f", "faded_green", c.x, c.y, state);
+            Mob::spawn_spec(PIXIE, c.x, c.y, state);
         }
     }
 }

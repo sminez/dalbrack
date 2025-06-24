@@ -14,7 +14,7 @@ use crate::{
         FLOOR, Map, WALL,
         builders::{BuildMap, Snapshots, voronoi_regions},
     },
-    mob::Mob,
+    mob::{Mob, PIXIE},
     rng::RngHandle,
     state::State,
 };
@@ -101,7 +101,7 @@ impl BuildMap for CellularAutomata {
     fn populate(&mut self, state: &mut State<'_>) {
         for r in self.regions.iter() {
             let p = r[state.rng.random_range(0..r.len())];
-            Mob::spawn("f", "faded_green", p.x, p.y, state);
+            Mob::spawn_spec(PIXIE, p.x, p.y, state);
         }
     }
 }

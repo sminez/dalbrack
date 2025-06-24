@@ -2,11 +2,46 @@ use crate::{
     Pos,
     action::{Action, ActionProvider, AvailableActions},
     actor::Actor,
-    map::fov::Opacity,
+    map::fov::{FovRange, Opacity},
     state::State,
 };
 use hecs::{Entity, EntityBuilder};
 use std::cmp::{max, min};
+
+pub struct MobSpec {
+    pub name: &'static str,
+    pub ident: &'static str,
+    pub color: &'static str,
+    pub fov_range: u32,
+}
+
+pub const PIXIE: MobSpec = MobSpec {
+    name: "pixie",
+    ident: "p",
+    color: "dragonPink",
+    fov_range: 6,
+};
+
+/// Mobs cover all sentient creatures other than the player.
+#[derive(Debug)]
+pub struct Mob;
+
+impl Mob {
+    pub fn spawn_spec(spec: MobSpec, x: i32, y: i32, state: &mut State<'_>) -> Entity {
+        state.world.spawn(
+            EntityBuilder::new()
+                .add(Mob)
+                .add(FovRange(spec.fov_range))
+                .add_bundle(Actor {
+                    pos: Pos::new(x, y),
+                    tile: state.tile_with_named_color(spec.ident, spec.color),
+                    opacity: Opacity(0.7),
+                    actions: AvailableActions::from(RandomMoveAI),
+                })
+                .build(),
+        )
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RandomMoveAI;
@@ -30,28 +65,5 @@ impl ActionProvider for RandomMoveAI {
 
             Ok(())
         })])
-    }
-}
-
-#[derive(Debug)]
-pub struct Mob;
-
-impl Mob {
-    pub fn spawn(ident: &str, color: &str, x: i32, y: i32, state: &mut State<'_>) -> Entity {
-        let mut tile = state.ts.tile(ident).unwrap();
-        tile.color = *state.palette.get(color).unwrap();
-
-        let mut builder = EntityBuilder::new();
-        state.world.spawn(
-            builder
-                .add(Mob)
-                .add_bundle(Actor {
-                    pos: Pos::new(x, y),
-                    tile,
-                    opacity: Opacity(0.7),
-                    actions: AvailableActions::from(RandomMoveAI),
-                })
-                .build(),
-        )
     }
 }
