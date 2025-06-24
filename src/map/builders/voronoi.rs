@@ -21,13 +21,13 @@ pub fn voronoi_regions_from_seeds(
     points: impl IntoIterator<Item = Pos>,
 ) -> Vec<Vec<Pos>> {
     let mut regions = vec![vec![]; seeds.len()];
-    let mut dists = vec![(0, 0); seeds.len()];
+    let mut dists = vec![(0, 0.0); seeds.len()];
 
     for p in points.into_iter() {
         for (i, seed) in seeds.iter().enumerate() {
-            dists[i] = (i, seed.dist(p));
+            dists[i] = (i, seed.fdist(p));
         }
-        dists.sort_by(|a, b| a.1.cmp(&b.1));
+        dists.sort_by(|a, b| a.1.total_cmp(&b.1));
         regions[dists[0].0].push(p);
     }
 
