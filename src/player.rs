@@ -3,7 +3,7 @@ use crate::{
     Pos,
     action::AvailableActions,
     actor::Actor,
-    map::fov::{FovRange, Opacity},
+    map::fov::{Fov, FovRange, Opacity},
     state::State,
 };
 use hecs::EntityBuilder;
@@ -34,5 +34,9 @@ impl Player {
     pub fn warp(new_pos: Pos, state: &State<'_>) {
         let mut pos = state.world.get::<&mut Pos>(state.e_player).unwrap();
         *pos = new_pos;
+
+        if let Ok(mut fov) = state.world.get::<&mut Fov>(state.e_player) {
+            fov.dirty = true;
+        };
     }
 }
