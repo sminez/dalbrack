@@ -1,4 +1,5 @@
 use crate::{Grid, Pos, grid::a_star, map::map_tile::MapTile, state::State};
+use fov::LightMap;
 use sdl2::rect::Rect;
 use std::{
     cmp::{max, min},
@@ -9,6 +10,9 @@ use std::{
 pub mod builders;
 pub mod fov;
 pub mod map_tile;
+mod mapset;
+
+pub use mapset::MapSet;
 
 const WALL: usize = 0;
 const FLOOR: usize = 1;
@@ -19,6 +23,7 @@ pub struct Map {
     pub tiles: Grid<usize>,
     pub explored: HashSet<usize>,
     pub tile_defs: Vec<MapTile>,
+    pub light_map: Option<LightMap>,
 }
 
 impl Map {
@@ -31,6 +36,7 @@ impl Map {
                 MapTile::floor(&state.ts, &state.palette),
                 // MapTile::door(&state.ts, &state.palette),
             ],
+            light_map: None,
         }
     }
 

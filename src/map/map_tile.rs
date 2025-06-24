@@ -2,6 +2,10 @@ use crate::tileset::{Tile, TileSet};
 use sdl2::pixels::Color;
 use std::collections::HashMap;
 
+pub const WALL: usize = 0;
+pub const FLOOR: usize = 1;
+// pub const DOOR: usize = 2;
+
 #[derive(Debug, Copy, Clone)]
 pub struct MapTile {
     /// The sprite to use for this tile

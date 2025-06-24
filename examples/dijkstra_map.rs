@@ -2,10 +2,7 @@ use dalbrack::{
     Grid, Pos, TITLE,
     grid::dijkstra_map,
     input::map_event_in_game_state,
-    map::{
-        Map,
-        builders::{BspDungeon, BuildConfig, BuildMap, CellularAutomata},
-    },
+    map::builders::{BspDungeon, BuildConfig, BuildMap, CellularAutomata},
     player::Player,
     state::State,
     tileset::Tile,
@@ -105,8 +102,8 @@ fn update_ui(state: &mut State<'_>) -> anyhow::Result<()> {
 }
 
 fn update_dmap(state: &State<'_>) -> Grid<Tile> {
+    let map = state.mapset.current();
     let pos = *state.world.get::<&Pos>(state.e_player).unwrap();
-    let map = state.world.get::<&mut Map>(state.e_map).unwrap();
     let raw = dijkstra_map(&map.tiles, &[(pos, 0)], |p| map.tile_at(p).path_cost);
 
     let near = *state.palette.get("autumnRed").unwrap();

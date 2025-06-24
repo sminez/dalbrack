@@ -42,16 +42,16 @@ fn get_opacity(map: &Map, objects: &HashMap<Pos, Opacity>) -> impl Fn(Pos) -> Op
 
 impl FovRange {
     pub fn fast_has_los(&self, from: Pos, to: Pos, state: &State<'_>) -> bool {
+        if state.mapset.is_empty() {
+            return false;
+        }
+
         let r_cutoff = self.0 as f32 + R_SMOOTHING;
         if from.fdist(to) > r_cutoff {
             return false;
         }
 
-        let map = match state.current_map() {
-            Some(map) => map,
-            None => return false,
-        };
-
+        let map = state.mapset.current();
         let mut opacity = 0.0;
         for p in map.line_between(from, to) {
             opacity += map.tile_at(p).opacity;
@@ -111,6 +111,7 @@ pub struct LightSource {
     pub color: Color,
 }
 
+#[derive(Debug, Clone)]
 pub struct LightMap {
     pub points: HashMap<Pos, Color>,
     pub c_hidden: Color,

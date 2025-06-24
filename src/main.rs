@@ -3,7 +3,6 @@ use dalbrack::{
     action::{Action, AvailableActions, toggle_explored},
     input::map_event_in_game_state,
     map::{
-        Map,
         builders::{BuildConfig, BuildMap, CellularAutomata, MapBuilder},
         fov::{FovRange, LightSource},
     },
@@ -22,10 +21,8 @@ pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
     let (pos, map) =
         CellularAutomata::walled_cities().new_map(W as usize, H as usize, CFG, &mut state);
-    let builder = MapBuilder::from(CellularAutomata::walled_cities);
 
     state.set_map(map);
-    state.world.insert_one(state.e_map, builder).unwrap();
 
     state.e_player = state.world.spawn(
         Player::new_base_bundle(pos, FovRange(30), &state)
@@ -75,11 +72,7 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
                 clear_with_comp::<LightSource>(state)?;
                 clear_with_comp::<AvailableActions>(state)?;
 
-                let builder = state
-                    .world
-                    .query_one_mut::<&MapBuilder>(state.e_map)
-                    .unwrap();
-
+                let builder = MapBuilder::from(CellularAutomata::walled_cities);
                 let (pos, map) = builder.get().new_map(W as usize, H as usize, CFG, state);
                 state.set_map(map);
                 Player::warp(pos, state);
@@ -128,7 +121,7 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
             ..
         } => Action::from(move |state: &mut State<'_>| {
             let pos = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
-            let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
+            let map = state.mapset.current_mut();
             map.tiles[pos] = if map.tiles[pos] == 0 { 1 } else { 0 };
 
             Ok(())

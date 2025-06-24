@@ -52,7 +52,10 @@ impl ActionProvider for RandomMoveAI {
     }
 
     fn available_actions(&mut self, entity: Entity, state: &State<'_>) -> Option<Vec<Action>> {
-        let map = state.current_map()?;
+        if state.mapset.is_empty() {
+            return None;
+        }
+        let map = state.mapset.current();
         let (xmax, ymax) = (map.w - 1, map.h - 1);
 
         let mut pos = state.world.get::<&Pos>(entity).ok()?.random_offset();

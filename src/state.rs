@@ -4,7 +4,7 @@ use crate::{
     action::{Action, AvailableActions},
     data_files::parse_color_palette,
     map::{
-        Map,
+        Map, MapSet,
         fov::{Fov, FovRange, LightMap, LightSource, Opacity},
     },
     player::Player,
@@ -12,7 +12,7 @@ use crate::{
     tileset::{Tile, TileSet},
     ui::Sdl2UI,
 };
-use hecs::{Entity, Ref, World};
+use hecs::{Entity, World};
 use sdl2::{pixels::Color, rect::Rect};
 use std::{
     collections::{HashMap, VecDeque},
@@ -24,7 +24,7 @@ pub struct State<'a> {
     pub rng: RngHandle,
     pub world: World,
     pub e_player: Entity,
-    pub e_map: Entity,
+    pub mapset: MapSet,
     pub ui: Sdl2UI<'a>,
     pub ts: TileSet<'a>,
     pub palette: HashMap<String, Color>,
@@ -42,13 +42,13 @@ impl<'a> State<'a> {
         let ui = Sdl2UI::init(w, h, dxy, window_title, bg, c_hidden)?;
         let mut world = World::new();
         let e_player = world.spawn(());
-        let e_map = world.spawn(());
+        let mapset = MapSet::new();
 
         Ok(State {
             rng: RngHandle::new(),
             world,
             e_player,
-            e_map,
+            mapset,
             ui,
             ts,
             palette,
@@ -161,18 +161,17 @@ impl<'a> State<'a> {
     }
 
     pub fn set_map(&mut self, map: Map) {
-        self.world
-            .insert_one(self.e_map, map)
-            .expect("e_map to be valid");
-    }
-
-    pub fn current_map(&self) -> Option<Ref<Map>> {
-        self.world.get::<&Map>(self.e_map).ok()
+        self.mapset.push(map);
+        self.mapset.next();
     }
 
     /// This will no-op rather than error if we are missing the correct player components
     /// or if the map is missing.
     pub fn update_fov(&mut self) -> anyhow::Result<()> {
+        if self.mapset.is_empty() {
+            return Ok(());
+        }
+
         match self.world.query_one_mut::<&Fov>(self.e_player) {
             Ok(fov) if !fov.dirty => return Ok(()), // nothing to compute
             _ => (),
@@ -190,11 +189,7 @@ impl<'a> State<'a> {
             .map(|(_, (&pos, &op))| (pos, op))
             .collect();
 
-        let map = match self.world.query_one_mut::<&mut Map>(self.e_map) {
-            Ok(map) => map,
-            Err(_) => return Ok(()),
-        };
-
+        let map = self.mapset.current_mut();
         let fov = Fov::new(map, &objects, pos, range);
         self.world.insert_one(self.e_player, fov)?;
 
@@ -202,31 +197,23 @@ impl<'a> State<'a> {
     }
 
     pub fn update_light_map(&mut self) -> anyhow::Result<()> {
-        let light_map = {
-            let fov = match self.world.get::<&Fov>(self.e_player) {
-                Ok(fov) => fov,
-                Err(_) => return Ok(()),
-            };
-            let mut map = self.world.get::<&mut Map>(self.e_map).unwrap();
-            let mut sources = self.world.query::<(&Pos, &LightSource)>();
-            let light_map = LightMap::from_sources(
-                &map,
-                &fov,
-                sources.iter().map(|(_, s)| s),
-                self.ui.c_hidden,
-            );
-
-            for p in fov.points.iter() {
-                if light_map.points.contains_key(p) {
-                    let idx = map.pos_idx(*p);
-                    map.explored.insert(idx);
-                }
-            }
-
-            light_map
+        let fov = match self.world.get::<&Fov>(self.e_player) {
+            Ok(fov) => fov,
+            Err(_) => return Ok(()),
         };
+        let map = self.mapset.current_mut();
+        let mut sources = self.world.query::<(&Pos, &LightSource)>();
+        let light_map =
+            LightMap::from_sources(map, &fov, sources.iter().map(|(_, s)| s), self.ui.c_hidden);
 
-        self.world.insert_one(self.e_map, light_map)?;
+        for p in fov.points.iter() {
+            if light_map.points.contains_key(p) {
+                let idx = map.pos_idx(*p);
+                map.explored.insert(idx);
+            }
+        }
+
+        self.mapset.current_mut().light_map = Some(light_map);
 
         Ok(())
     }
@@ -240,14 +227,14 @@ impl<'a> State<'a> {
     }
 
     pub fn blit_map(&mut self) -> anyhow::Result<()> {
+        if self.mapset.is_empty() {
+            return Ok(()); // no map to render
+        }
         let fov = self.world.get::<&Fov>(self.e_player).ok();
-        let map = match self.world.get::<&mut Map>(self.e_map) {
-            Ok(map) => map,
-            Err(_) => return Ok(()), // no map to render
-        };
-        let fov_and_light_map = match self.world.get::<&LightMap>(self.e_map) {
-            Ok(lm) => fov.map(|fov| (fov, lm)),
-            Err(_) => None,
+        let map = self.mapset.current_mut();
+        let fov_and_light_map = match map.light_map.as_ref() {
+            Some(lm) => fov.map(|fov| (fov, lm)),
+            None => None,
         };
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);

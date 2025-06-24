@@ -1,5 +1,5 @@
 //! Actions that can be executed by the main game loop
-use crate::{map::Map, state::State};
+use crate::state::State;
 use hecs::Entity;
 use std::{collections::VecDeque, fmt::Debug};
 
@@ -99,7 +99,7 @@ pub fn zoom_out(state: &mut State<'_>) -> anyhow::Result<()> {
 }
 
 pub fn toggle_explored(state: &mut State<'_>) -> anyhow::Result<()> {
-    let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
+    let map = state.mapset.current_mut();
     if map.explored.len() == map.tiles.len() {
         map.clear_explored();
     } else {

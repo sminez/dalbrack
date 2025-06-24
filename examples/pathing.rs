@@ -2,7 +2,6 @@ use dalbrack::{
     Pos, TITLE,
     input::map_event_in_game_state,
     map::{
-        Map,
         builders::{BspDungeon, BuildConfig, BuildMap},
         fov::FovRange,
     },
@@ -70,8 +69,7 @@ pub fn main() -> anyhow::Result<()> {
                             path_target = Some(target);
 
                             let from = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
-                            let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
-                            let path = map.a_star(from, target);
+                            let path = state.mapset.current().a_star(from, target);
 
                             for pos in path.into_iter() {
                                 state.world.spawn((

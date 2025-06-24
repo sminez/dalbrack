@@ -2,12 +2,8 @@ use dalbrack::{
     Grid, Pos, TITLE,
     grid::dijkstra_map,
     input::map_event_in_game_state,
-    map::{
-        Map,
-        builders::{
-            BuildConfig, BuildMap, CaRule, CellularAutomata, voronoi_regions_from_seeds,
-            voronoi_seeds,
-        },
+    map::builders::{
+        BuildConfig, BuildMap, CaRule, CellularAutomata, voronoi_regions_from_seeds, voronoi_seeds,
     },
     player::Player,
     rng::RngHandle,
@@ -223,8 +219,8 @@ fn as_u8s(s: &str) -> anyhow::Result<Vec<u8>> {
 }
 
 fn update_dmap(state: &mut State<'_>) -> Grid<Tile> {
+    let map = state.mapset.current();
     let pos = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
-    let map = state.world.query_one_mut::<&mut Map>(state.e_map).unwrap();
     let raw = dijkstra_map(&map.tiles, &[(pos, 0)], |p| map.tile_at(p).path_cost);
 
     let near = *state.palette.get("autumnRed").unwrap();
@@ -256,7 +252,7 @@ fn update_dmap(state: &mut State<'_>) -> Grid<Tile> {
 }
 
 fn color_regions(seeds: &[Pos], colors: &[Color], state: &State<'_>) -> Vec<(Pos, Tile)> {
-    let map = state.world.get::<&Map>(state.e_map).unwrap();
+    let map = state.mapset.current();
     let points = map.cells.iter().enumerate().flat_map(|(i, idx)| {
         if *idx > 0 {
             let x = i % map.w;

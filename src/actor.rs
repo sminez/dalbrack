@@ -1,10 +1,7 @@
 use crate::{
     Pos,
     action::{Action, ActionProvider, AvailableActions},
-    map::{
-        Map,
-        fov::{Fov, Opacity},
-    },
+    map::fov::{Fov, Opacity},
     state::State,
     tileset::Tile,
 };
@@ -21,7 +18,7 @@ pub struct Actor {
 impl Actor {
     pub fn try_move(dx: i32, dy: i32, entity: Entity, state: &State<'_>) -> Option<Action> {
         let pos = *state.world.get::<&Pos>(entity).unwrap() + Pos::new(dx, dy);
-        let map = state.world.get::<&Map>(state.e_map).unwrap();
+        let map = state.mapset.current();
         if map.tile_at(pos).blocks_movement() {
             return None;
         }
@@ -82,8 +79,7 @@ pub struct FollowPath {
 
 impl FollowPath {
     pub fn try_new_a_star(from: Pos, target: Pos, state: &State<'_>) -> Option<Self> {
-        let map = state.world.get::<&Map>(state.e_map).unwrap();
-        let mut path = map.a_star(from, target);
+        let mut path = state.mapset.current().a_star(from, target);
 
         if path.is_empty() {
             None
@@ -99,8 +95,10 @@ impl FollowPath {
         target: Pos,
         state: &State<'_>,
     ) -> Option<Self> {
-        let map = state.world.get::<&Map>(state.e_map).unwrap();
-        let mut path = map.a_star_in_player_explored(from, target);
+        let mut path = state
+            .mapset
+            .current()
+            .a_star_in_player_explored(from, target);
 
         if path.is_empty() {
             None
@@ -119,7 +117,7 @@ impl ActionProvider for FollowPath {
 
     fn available_actions(&mut self, entity: Entity, state: &State<'_>) -> Option<Vec<Action>> {
         let pos = self.path.pop()?;
-        let map = state.world.get::<&Map>(state.e_map).unwrap();
+        let map = state.mapset.current();
         if map.tile_at(pos).blocks_movement() {
             self.path.clear();
             return None;
