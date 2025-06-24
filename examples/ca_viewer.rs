@@ -27,8 +27,8 @@ use std::{
 
 static FILE_CHANGED: AtomicBool = AtomicBool::new(false);
 const DXY: u32 = 25;
-const W: i32 = 80;
-const H: i32 = 50;
+const W: i32 = 70;
+const H: i32 = 40;
 const CFG: BuildConfig = BuildConfig { populated: false };
 const N_GROUPS: usize = 16;
 

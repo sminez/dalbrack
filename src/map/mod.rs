@@ -43,7 +43,11 @@ impl Map {
     }
 
     pub fn tile_at(&self, pos: Pos) -> &MapTile {
-        &self.tile_defs[self.tiles[pos]]
+        if self.contains_pos(pos) {
+            &self.tile_defs[self.tiles[pos]]
+        } else {
+            &self.tile_defs[WALL]
+        }
     }
 
     pub fn carve_rect(&mut self, r: Rect) {
