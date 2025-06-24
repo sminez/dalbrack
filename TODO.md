@@ -14,6 +14,7 @@
 - maybe try allowing more permissive illumination if the light source is between the player
   and the object it is hitting?
   - This would need to be done while building the map at the source level
+- update colors for actors and items based on the light map as well as map tiles
 
 ### Blitting
 The current behaviour just looks for:

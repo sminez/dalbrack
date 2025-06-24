@@ -4,9 +4,12 @@
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
 //!   https://www.roguebasin.com/index.php?title=Discussion:Field_of_Vision
 //!   https://www.roguebasin.com/index.php/Restrictive_Precise_Angle_Shadowcasting
-use crate::{Pos, map::Map, ui::blend};
+use crate::{Pos, map::Map, state::State, ui::blend};
 use sdl2::pixels::Color;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Range,
+};
 
 /// Scaling factor for inverse-square falloff
 const DIST_SCALE: f32 = 0.03;
@@ -23,6 +26,44 @@ pub struct Opacity(pub f32);
 #[derive(Debug, Clone, Copy)]
 pub struct FovRange(pub u32);
 
+fn get_opacity(map: &Map, objects: &HashMap<Pos, Opacity>) -> impl Fn(Pos) -> Option<f32> {
+    |pos| {
+        let obj_opacity = objects.get(&pos).copied().unwrap_or_default().0;
+        map.try_cell_at(pos).map(|idx| {
+            let opacity = map.tile_defs[*idx].opacity;
+            if opacity > obj_opacity {
+                opacity
+            } else {
+                obj_opacity
+            }
+        })
+    }
+}
+
+impl FovRange {
+    pub fn fast_has_los(&self, from: Pos, to: Pos, state: &State<'_>) -> bool {
+        let r_cutoff = self.0 as f32 + R_SMOOTHING;
+        if from.fdist(to) > r_cutoff {
+            return false;
+        }
+
+        let map = match state.current_map() {
+            Some(map) => map,
+            None => return false,
+        };
+
+        let mut opacity = 0.0;
+        for p in map.line_between(from, to) {
+            opacity += map.tile_at(p).opacity;
+            if opacity >= 1.0 {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
 pub struct Fov {
     pub points: HashSet<Pos>,
     pub from: Pos,
@@ -38,20 +79,15 @@ impl Fov {
         FovRange(range): FovRange,
     ) -> Self {
         let r_cutoff = range as f32 + R_SMOOTHING;
-        let points: HashSet<Pos> =
-            RPACaster::new(from, range as i32, r_cutoff, Vis::CenterPlus, |pos| {
-                let obj_opacity = objects.get(&pos).copied().unwrap_or_default().0;
-                map.try_cell_at(pos).map(|idx| {
-                    let opacity = map.tile_defs[*idx].opacity;
-                    if opacity > obj_opacity {
-                        opacity
-                    } else {
-                        obj_opacity
-                    }
-                })
-            })
-            .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
-            .collect();
+        let points: HashSet<Pos> = RPACaster::new(
+            from,
+            range as i32,
+            r_cutoff,
+            Vis::CenterPlus,
+            get_opacity(map, objects),
+        )
+        .filter_map(|(pos, opacity)| if opacity < 1.0 { Some(pos) } else { None })
+        .collect();
 
         Fov {
             points,
@@ -184,7 +220,7 @@ where
     /// Iterator of all candidate cells for the current octant
     cells: OctantCells,
     /// The octant currently being iterated over
-    octant: usize,
+    octant: Range<usize>,
     /// Radius to include cells up to
     radius: i32,
     /// Smoothed cutoff point for the given radius
@@ -203,7 +239,7 @@ where
             get_opacity,
             obstructions: Vec::new(),
             cells: OctantCells::new(radius, r_cutoff, 0),
-            octant: 0,
+            octant: 1..8,
             radius,
             r_cutoff,
             from,
@@ -216,13 +252,9 @@ where
             let (pos, angle) = match self.cells.next() {
                 Some(elem) => elem,
                 None => {
-                    if self.octant == 7 {
-                        return None; // all octants scanned
-                    }
-
-                    self.octant += 1;
+                    let octant = self.octant.next()?;
                     self.obstructions.clear();
-                    self.cells = OctantCells::new(self.radius, self.r_cutoff, self.octant);
+                    self.cells = OctantCells::new(self.radius, self.r_cutoff, octant);
 
                     return self.next_cell();
                 }

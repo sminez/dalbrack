@@ -152,6 +152,42 @@ impl<T> Grid<T> {
             None
         })
     }
+
+    pub fn line_between(&self, from: Pos, to: Pos) -> Vec<Pos> {
+        if !(self.contains_pos(from) && self.contains_pos(to)) {
+            return Vec::new();
+        }
+
+        let dy = to.y - from.y;
+        let dx = to.x - from.x;
+
+        let (y_longer, mut d_long, d_short) = if dy.abs() > dx.abs() {
+            (true, dy, dx)
+        } else {
+            (false, dx, dy)
+        };
+
+        let k = if d_long == 0 {
+            d_short as f32
+        } else {
+            d_short as f32 / d_long as f32
+        };
+
+        let inc = if d_long < 0 { -1 } else { 1 };
+        d_long *= inc;
+
+        (0..=d_long)
+            .map(|i| {
+                let d1 = i * inc;
+                let d2 = (d1 as f32 * k) as i32;
+                if y_longer {
+                    from + Pos::new(d2, d1)
+                } else {
+                    from + Pos::new(d1, d2)
+                }
+            })
+            .collect()
+    }
 }
 
 impl<T> Grid<T>
