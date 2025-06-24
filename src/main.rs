@@ -67,26 +67,13 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
         } => match k {
             Keycode::Space => toggle_explored.into(),
 
+            Keycode::C => {
+                Action::from(move |state: &mut State<'_>| clear_with_comp::<LightSource>(state))
+            }
+
             Keycode::R => Action::from(move |state: &mut State<'_>| {
-                let lights: Vec<_> = state
-                    .world
-                    .query::<&LightSource>()
-                    .without::<&Player>()
-                    .iter()
-                    .map(|(e, _)| e)
-                    .collect();
-
-                let mobs: Vec<_> = state
-                    .world
-                    .query::<&AvailableActions>()
-                    .without::<&Player>()
-                    .iter()
-                    .map(|(e, _)| e)
-                    .collect();
-
-                for entity in lights.into_iter().chain(mobs) {
-                    state.world.despawn(entity)?;
-                }
+                clear_with_comp::<LightSource>(state)?;
+                clear_with_comp::<AvailableActions>(state)?;
 
                 let builder = state
                     .world
@@ -99,6 +86,7 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
 
                 state.update_fov()?;
                 state.update_light_map()?;
+                state.update_ui()?;
 
                 Ok(())
             }),
@@ -150,4 +138,20 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
     };
 
     Some(action)
+}
+
+fn clear_with_comp<T: hecs::Component>(state: &mut State<'_>) -> anyhow::Result<()> {
+    let entities: Vec<_> = state
+        .world
+        .query::<&T>()
+        .without::<&Player>()
+        .iter()
+        .map(|(e, _)| e)
+        .collect();
+
+    for entity in entities.into_iter() {
+        state.world.despawn(entity)?;
+    }
+
+    Ok(())
 }
