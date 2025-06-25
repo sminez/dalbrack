@@ -1,6 +1,6 @@
-use crate::{Grid, Pos, grid::a_star, map::map_tile::MapTile, state::State};
+use crate::{Grid, Pos, grid::a_star, map::map_tile::MapTile};
 use fov::LightMap;
-use sdl2::rect::Rect;
+use sdl2::{pixels::Color, rect::Rect};
 use std::{
     cmp::{max, min},
     collections::HashSet,
@@ -12,11 +12,8 @@ pub mod fov;
 pub mod map_tile;
 mod mapset;
 
+use map_tile::{FLOOR, WALL};
 pub use mapset::MapSet;
-
-const WALL: usize = 0;
-const FLOOR: usize = 1;
-// const DOOR: usize = 2;
 
 #[derive(Debug, Clone)]
 pub struct Map {
@@ -24,19 +21,19 @@ pub struct Map {
     pub explored: HashSet<usize>,
     pub tile_defs: Vec<MapTile>,
     pub light_map: Option<LightMap>,
+    pub bg: Color,
+    pub hidden: Color,
 }
 
 impl Map {
-    pub fn new(w: usize, h: usize, state: &State<'_>) -> Self {
+    pub fn new(w: usize, h: usize, tile_defs: Vec<MapTile>, bg: Color, hidden: Color) -> Self {
         Self {
-            tiles: Grid::new(w, h, WALL),
+            tiles: Grid::new(w, h, 0),
             explored: HashSet::new(),
-            tile_defs: vec![
-                MapTile::wall(&state.ts, &state.palette),
-                MapTile::floor(&state.ts, &state.palette),
-                // MapTile::door(&state.ts, &state.palette),
-            ],
+            tile_defs,
             light_map: None,
+            bg,
+            hidden,
         }
     }
 
@@ -56,23 +53,23 @@ impl Map {
         }
     }
 
-    pub fn carve_rect(&mut self, r: Rect) {
+    pub fn carve_rect(&mut self, r: Rect, tile_idx: usize) {
         for y in r.y..r.y + r.h {
             for x in r.x..r.x + r.w {
-                self.tiles[Pos::new(x, y)] = FLOOR;
+                self.tiles[Pos::new(x, y)] = tile_idx;
             }
         }
     }
 
-    pub fn carve_h_tunnel(&mut self, x1: i32, x2: i32, y: i32) {
+    pub fn carve_h_tunnel(&mut self, x1: i32, x2: i32, y: i32, tile_idx: usize) {
         for x in min(x1, x2)..=max(x1, x2) {
-            self.tiles[Pos::new(x, y)] = FLOOR;
+            self.tiles[Pos::new(x, y)] = tile_idx;
         }
     }
 
-    pub fn carve_v_tunnel(&mut self, y1: i32, y2: i32, x: i32) {
+    pub fn carve_v_tunnel(&mut self, y1: i32, y2: i32, x: i32, tile_idx: usize) {
         for y in min(y1, y2)..=max(y1, y2) {
-            self.tiles[Pos::new(x, y)] = FLOOR;
+            self.tiles[Pos::new(x, y)] = tile_idx;
         }
     }
 

@@ -13,12 +13,14 @@ use crate::{
     map::{
         FLOOR, Map, WALL,
         builders::{BuildMap, Snapshots, voronoi_regions},
+        map_tile::MapTile,
     },
     mob::{Mob, PIXIE},
     rng::RngHandle,
     state::State,
 };
 use rand::Rng;
+use sdl2::pixels::Color;
 
 const MIN_FLOOR_PERC: f32 = 0.45;
 const N_SEEDS: usize = 16;
@@ -37,6 +39,13 @@ impl Default for CellularAutomata {
 }
 
 impl BuildMap for CellularAutomata {
+    fn bg_and_tiles(&self, state: &State<'_>) -> (Color, Vec<MapTile>) {
+        let bg = *state.palette.get("forestBG").unwrap();
+        let tiles = MapTile::forest_tiles(&state.ts, &state.palette);
+
+        (bg, tiles)
+    }
+
     fn init_map(&mut self, map: &mut Map) {
         let mut rng = RngHandle::new();
 

@@ -34,7 +34,6 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::Num6 => state.ts = TileSet::df_yayo()?,
                 Keycode::Num7 => state.ts = TileSet::df_kruggsmash()?,
 
-                Keycode::Space => state.ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
 
                 _ => continue,

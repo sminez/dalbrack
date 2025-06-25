@@ -13,7 +13,7 @@ use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 
 const DXY: u32 = 25;
-const W: i32 = 70;
+const W: i32 = 60;
 const H: i32 = 40;
 const CFG: BuildConfig = BuildConfig { populated: true };
 

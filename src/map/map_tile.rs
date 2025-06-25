@@ -40,12 +40,26 @@ impl MapTile {
         }
     }
 
+    pub fn forest_tiles(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Vec<Self> {
+        vec![
+            Self::new("club", "tree", None, u8::MAX, 0.7, ts, palette),
+            Self::new("dot", "earth", Some(1), 1, 0.0, ts, palette),
+        ]
+    }
+
+    pub fn dungeon_tiles(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Vec<Self> {
+        vec![
+            Self::new("shade-dark", "grey13", None, u8::MAX, 1.0, ts, palette),
+            Self::new("dot", "grey15", Some(1), 1, 0.0, ts, palette),
+        ]
+    }
+
     pub fn wall(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
         Self::new("shade-dark", "grey13", None, u8::MAX, 1.0, ts, palette)
     }
 
     pub fn floor(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
-        Self::new("dot", "grey10", Some(1), 1, 0.0, ts, palette)
+        Self::new("dot", "earth", Some(1), 1, 0.0, ts, palette)
     }
 
     //     pub fn door(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {

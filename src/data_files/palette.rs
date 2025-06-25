@@ -7,7 +7,7 @@ pub fn parse_color_palette() -> anyhow::Result<HashMap<String, Color>> {
     let mut palette = HashMap::new();
 
     for line in raw.lines() {
-        if line.is_empty() {
+        if line.is_empty() || line.starts_with("--") {
             continue;
         }
 

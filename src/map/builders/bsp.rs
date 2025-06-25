@@ -1,15 +1,16 @@
 use crate::{
     Pos,
     map::{
-        Map,
+        Map, MapTile,
         builders::{BuildMap, Snapshots},
+        map_tile::FLOOR,
     },
     mob::{Mob, PIXIE},
     rng::RngHandle,
     state::State,
 };
 use rand::{Rng, rngs::ThreadRng};
-use sdl2::rect::Rect;
+use sdl2::{pixels::Color, rect::Rect};
 use std::cmp::{max, min};
 
 /// min split position as a %
@@ -27,6 +28,13 @@ pub struct BspDungeon {
 }
 
 impl BuildMap for BspDungeon {
+    fn bg_and_tiles(&self, state: &State<'_>) -> (Color, Vec<MapTile>) {
+        let bg = *state.palette.get("black").unwrap();
+        let tiles = MapTile::dungeon_tiles(&state.ts, &state.palette);
+
+        (bg, tiles)
+    }
+
     fn build(
         &mut self,
         mut map: Map,
@@ -127,7 +135,7 @@ fn position_and_carve(
     r.h -= r.y - p.y;
     r.h -= rng.random_range(1..max(2, r.h / 3));
 
-    map.carve_rect(r);
+    map.carve_rect(r, FLOOR);
     snapshots.push(map);
 
     r
@@ -138,11 +146,11 @@ fn connect(r1: Rect, r2: Rect, rng: &mut RngHandle, map: &mut Map, snapshots: &m
     let Pos { x: x2, y: y2 } = rng.random_point(r2, 1);
 
     if rng.random_bool(0.5) {
-        map.carve_h_tunnel(x1, x2, y1);
-        map.carve_v_tunnel(y1, y2, x2);
+        map.carve_h_tunnel(x1, x2, y1, FLOOR);
+        map.carve_v_tunnel(y1, y2, x2, FLOOR);
     } else {
-        map.carve_v_tunnel(y1, y2, x1);
-        map.carve_h_tunnel(x1, x2, y2);
+        map.carve_v_tunnel(y1, y2, x1, FLOOR);
+        map.carve_h_tunnel(x1, x2, y2, FLOOR);
     }
     snapshots.push(map);
 }

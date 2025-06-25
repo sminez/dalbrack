@@ -1,5 +1,9 @@
 //! Map building algorithms
-use crate::{Pos, map::Map, state::State};
+use crate::{
+    Pos,
+    map::{Map, MapTile},
+    state::State,
+};
 
 mod bsp;
 mod cellular_automata;
@@ -7,9 +11,12 @@ mod voronoi;
 
 pub use bsp::BspDungeon;
 pub use cellular_automata::{CaRule, CellularAutomata};
+use sdl2::pixels::Color;
 pub use voronoi::{voronoi_regions, voronoi_regions_from_seeds, voronoi_seeds};
 
 pub trait BuildMap: Send + Sync {
+    fn bg_and_tiles(&self, state: &State<'_>) -> (Color, Vec<MapTile>);
+
     #[allow(unused_variables)]
     fn init_map(&mut self, map: &mut Map) {}
 
@@ -34,8 +41,11 @@ pub trait BuildMap: Send + Sync {
             active: false,
         };
 
+        let (bg, tile_defs) = self.bg_and_tiles(state);
+        let hidden = *state.palette.get("hidden").unwrap();
+
         loop {
-            let mut map = Map::new(map_w, map_h, state);
+            let mut map = Map::new(map_w, map_h, tile_defs.clone(), bg, hidden);
             self.init_map(&mut map);
             snapshots.push(&map);
 
@@ -56,8 +66,11 @@ pub trait BuildMap: Send + Sync {
             active: true,
         };
 
+        let (bg, tile_defs) = self.bg_and_tiles(state);
+        let hidden = *state.palette.get("hidden").unwrap();
+
         loop {
-            let mut map = Map::new(map_w, map_h, state);
+            let mut map = Map::new(map_w, map_h, tile_defs.clone(), bg, hidden);
             self.init_map(&mut map);
             snapshots.push(&map);
 

@@ -37,9 +37,7 @@ impl<'a> State<'a> {
     pub fn init(w: u32, h: u32, dxy: u32, window_title: &str) -> anyhow::Result<Self> {
         let ts = TileSet::default();
         let palette = parse_color_palette()?;
-        let bg = *palette.get("black").unwrap();
-        let c_hidden = *palette.get("hidden").unwrap();
-        let ui = Sdl2UI::init(w, h, dxy, window_title, bg, c_hidden)?;
+        let ui = Sdl2UI::init(w, h, dxy, window_title)?;
         let mut world = World::new();
         let e_player = world.spawn(());
         let mapset = MapSet::new();
@@ -161,6 +159,7 @@ impl<'a> State<'a> {
     }
 
     pub fn set_map(&mut self, map: Map) {
+        self.ui.set_bg(map.bg);
         self.mapset.push(map);
         self.mapset.next();
     }
@@ -204,7 +203,7 @@ impl<'a> State<'a> {
         let map = self.mapset.current_mut();
         let mut sources = self.world.query::<(&Pos, &LightSource)>();
         let light_map =
-            LightMap::from_sources(map, &fov, sources.iter().map(|(_, s)| s), self.ui.c_hidden);
+            LightMap::from_sources(map, &fov, sources.iter().map(|(_, s)| s), map.hidden);
 
         for p in fov.points.iter() {
             if light_map.points.contains_key(p) {

@@ -29,7 +29,6 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::Up => row = row.saturating_sub(1),
                 Keycode::Down => row += 1,
 
-                Keycode::Space => state.ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
 
                 _ => continue,

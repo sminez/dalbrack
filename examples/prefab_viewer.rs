@@ -34,7 +34,6 @@ pub fn main() -> anyhow::Result<()> {
                 Keycode::RightBracket => state.ui.dxy += 5,
                 Keycode::LeftBracket => state.ui.dxy -= 5,
 
-                Keycode::Space => state.ui.toggle_debug_bg(),
                 Keycode::Q | Keycode::Escape => return Ok(()),
 
                 _ => continue,

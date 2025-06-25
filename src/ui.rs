@@ -19,19 +19,10 @@ pub struct Sdl2UI<'a> {
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
     bg: Color,
-    pub c_hidden: Color,
-    debug: bool,
 }
 
 impl<'a> Sdl2UI<'a> {
-    pub fn init(
-        w: u32,
-        h: u32,
-        dxy: u32,
-        window_title: &str,
-        bg: Color,
-        c_hidden: Color,
-    ) -> anyhow::Result<Self> {
+    pub fn init(w: u32, h: u32, dxy: u32, window_title: &str) -> anyhow::Result<Self> {
         let ctx = sdl2::init().map_err(|e| anyhow!("{e}"))?;
         let video_ss = ctx.video().map_err(|e| anyhow!("{e}"))?;
 
@@ -46,7 +37,7 @@ impl<'a> Sdl2UI<'a> {
 
         let buf = Surface::new(w, h, PixelFormatEnum::ARGB8888).map_err(|e| anyhow!("{e}"))?;
 
-        canvas.set_draw_color(bg);
+        canvas.set_draw_color(Color::BLACK);
         canvas.clear();
         canvas.present();
 
@@ -60,20 +51,8 @@ impl<'a> Sdl2UI<'a> {
             buf,
             tc,
             evts,
-            bg,
-            c_hidden,
-            debug: false,
+            bg: Color::MAGENTA, // so its obvious when its not been set
         })
-    }
-
-    /// Toggle the background color between black and magenta to help with debugging rendering
-    /// issues
-    pub fn toggle_debug_bg(&mut self) {
-        self.debug = !self.debug;
-    }
-
-    fn bg(&self) -> Color {
-        if self.debug { Color::MAGENTA } else { self.bg }
     }
 
     pub fn set_bg(&mut self, color: Color) {
@@ -134,10 +113,9 @@ impl<'a> Sdl2UI<'a> {
     }
 
     pub fn clear(&mut self) {
-        let bg = self.bg();
-        self.canvas.set_draw_color(bg);
+        self.canvas.set_draw_color(self.bg);
         self.canvas.clear();
-        self.buf.fill_rect(None, bg).unwrap();
+        self.buf.fill_rect(None, self.bg).unwrap();
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
