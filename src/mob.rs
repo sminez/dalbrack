@@ -35,7 +35,7 @@ impl Mob {
                 .add_bundle(Actor {
                     pos: Pos::new(x, y),
                     tile: state.tile_with_named_color(spec.ident, spec.color),
-                    opacity: Opacity(0.7),
+                    opacity: Opacity(0.5),
                     actions: AvailableActions::from(RandomMoveAI),
                 })
                 .build(),

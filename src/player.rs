@@ -23,7 +23,7 @@ impl Player {
         let mut builder = EntityBuilder::new();
         builder.add(Player).add_bundle(Actor {
             pos,
-            tile: state.tile_with_named_color("@", "white"),
+            tile: state.tile_with_named_color("@", "ibmWhite"),
             opacity: Opacity(0.7),
             actions: AvailableActions::default(),
         });
