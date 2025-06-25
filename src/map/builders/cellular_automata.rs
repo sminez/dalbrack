@@ -19,7 +19,7 @@ use crate::{
     rng::RngHandle,
     state::State,
 };
-use rand::Rng;
+use rand::{Rng, seq::IndexedRandom};
 use sdl2::pixels::Color;
 
 const MIN_FLOOR_PERC: f32 = 0.45;
@@ -34,7 +34,7 @@ pub struct CellularAutomata {
 
 impl Default for CellularAutomata {
     fn default() -> Self {
-        Self::rogue_basin()
+        Self::walled_cities()
     }
 }
 
@@ -100,6 +100,13 @@ impl BuildMap for CellularAutomata {
             });
 
             self.regions = voronoi_regions(N_SEEDS, map.w, map.h, points, &mut state.rng);
+
+            // randomise trees
+            for tile in map.tiles.cells.iter_mut() {
+                if *tile == WALL {
+                    *tile = *[0, 2, 3, 4].choose(&mut state.rng).unwrap();
+                }
+            }
 
             return Some((pos, map));
         }

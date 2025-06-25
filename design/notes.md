@@ -7,6 +7,7 @@
   - https://tung.github.io/ruggrogue/source-code-guide/index.html
 - https://tomassedovic.github.io/roguelike-tutorial/
 - https://www.redblobgames.com/blog/
+- https://lospec.com/palette-list
 
 - https://github.com/tsadok/brogue
 
