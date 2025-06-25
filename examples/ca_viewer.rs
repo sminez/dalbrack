@@ -3,7 +3,8 @@ use dalbrack::{
     grid::dijkstra_map,
     input::map_event_in_game_state,
     map::builders::{
-        BuildConfig, BuildMap, CaRule, CellularAutomata, voronoi_regions_from_seeds, voronoi_seeds,
+        BuildConfig, BuildMap, CaRule, CellularAutomata, StartingPosition,
+        voronoi_regions_from_seeds, voronoi_seeds,
     },
     player::Player,
     rng::RngHandle,
@@ -201,6 +202,7 @@ fn parse_ca_rule() -> anyhow::Result<CellularAutomata> {
     let survive = as_u8s(s.trim())?;
 
     Ok(CellularAutomata {
+        start_pos: StartingPosition::Center,
         p_initial_open,
         iterations,
         rule: CaRule::LifeLike { born, survive },

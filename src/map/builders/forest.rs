@@ -2,7 +2,10 @@ use crate::{
     Pos,
     map::{
         Map, MapTile,
-        builders::{BuildMap, CellularAutomata, Snapshots, cellular_automata::FILLED},
+        builders::{
+            BuildMap, CellularAutomata, Snapshots,
+            cellular_automata::{FILLED, StartingPosition},
+        },
     },
     mob::{Mob, PIXIE},
     state::State,
@@ -24,9 +27,10 @@ impl Default for Forest {
 
 impl Forest {
     pub fn new() -> Self {
-        Self {
-            ca: CellularAutomata::walled_cities(),
-        }
+        let mut ca = CellularAutomata::walled_cities();
+        ca.start_pos = StartingPosition::South;
+
+        Self { ca }
     }
 }
 

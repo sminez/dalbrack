@@ -25,10 +25,49 @@ const N_SEEDS: usize = 16;
 pub const FILLED: usize = 0;
 pub const OPEN: usize = 1;
 
+#[derive(Debug)]
+pub enum StartingPosition {
+    North,
+    South,
+    East,
+    West,
+    Center,
+}
+
+impl StartingPosition {
+    pub fn locate(&self, map: &Map) -> Option<Pos> {
+        let (w, h) = (map.w as i32, map.h as i32);
+
+        let (x, y, dx, dy) = match self {
+            Self::North => (w / 2, 0, 1, 0),
+            Self::South => (w / 2, h - 1, 1, 0),
+            Self::East => (w - 1, h / 2, 0, -1),
+            Self::West => (0, h / 2, 0, -1),
+            Self::Center => (w / 2, h / 2, -1, 0),
+        };
+
+        for i in [1, -1] {
+            let mut pos = Pos::new(x, y);
+            let delta = Pos::new(dx * i, dy * i);
+
+            while map.contains_pos(pos) {
+                if map[pos] == OPEN {
+                    return Some(pos);
+                }
+
+                pos += delta;
+            }
+        }
+
+        None
+    }
+}
+
 /// Helper struct that can construct a map from a given cellular automata rule.
 /// When used directly via [BuildMap] this will return maps where filled cells are walls and open
 /// cells are floor but no other features.
 pub struct CellularAutomata {
+    pub start_pos: StartingPosition,
     pub p_initial_open: u16,
     pub iterations: usize,
     pub rule: CaRule,
@@ -42,19 +81,6 @@ impl Default for CellularAutomata {
 }
 
 impl CellularAutomata {
-    fn find_starting_cell(&self, map: &Map) -> Option<Pos> {
-        let mut pos = Pos::new(map.w as i32 / 2, map.h as i32 / 2);
-        while pos.x >= 0 {
-            if map[pos] == OPEN {
-                return Some(pos);
-            }
-
-            pos.x -= 1;
-        }
-
-        None
-    }
-
     fn has_sufficient_open(&self, map: &Map) -> bool {
         let n_open = map.tiles.cells.iter().filter(|&&t| t == OPEN).count();
         let p_open = n_open as f32 / map.tiles.cells.len() as f32;
@@ -106,7 +132,7 @@ impl BuildMap for CellularAutomata {
             snapshots.push(&map);
         }
 
-        let pos = self.find_starting_cell(&map)?;
+        let pos = self.start_pos.locate(&map)?;
         self.fill_unreachable_from(&[(pos, 0)], FILLED, &mut map);
 
         if !self.has_sufficient_open(&map) {
@@ -194,6 +220,7 @@ macro_rules! rule {
         impl CellularAutomata {
             pub fn $name() -> Self {
                 Self {
+                    start_pos: StartingPosition::Center,
                     p_initial_open: $p_open,
                     iterations: $iterations,
                     rule: CaRule::$name(),
@@ -217,6 +244,7 @@ macro_rules! rule {
         impl CellularAutomata {
             pub fn $name() -> Self {
                 Self {
+                    start_pos: StartingPosition::Center,
                     p_initial_open: $p_open,
                     iterations: $iterations,
                     rule: CaRule::Fn($name),

@@ -1,5 +1,5 @@
 use dalbrack::{TITLE, data_files::parse_cp437_prefab, state::State, tileset::TileSet};
-use sdl2::{event::Event, keyboard::Keycode};
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 use std::env::args;
 
 const X: i32 = 1;
@@ -12,6 +12,7 @@ pub fn main() -> anyhow::Result<()> {
     };
 
     let mut state = State::init(1280, 1000, 50, TITLE)?;
+    state.ui.set_bg(Color::BLACK);
     update(&path, &mut state)?;
 
     loop {

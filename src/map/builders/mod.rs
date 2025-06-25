@@ -13,7 +13,7 @@ mod forest;
 mod voronoi;
 
 pub use bsp::BspDungeon;
-pub use cellular_automata::{CaRule, CellularAutomata};
+pub use cellular_automata::{CaRule, CellularAutomata, StartingPosition};
 pub use forest::Forest;
 pub use voronoi::{voronoi_regions, voronoi_regions_from_seeds, voronoi_seeds};
 
