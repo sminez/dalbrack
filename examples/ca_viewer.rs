@@ -194,14 +194,14 @@ fn parse_ca_rule() -> anyhow::Result<CellularAutomata> {
 
     let (meta, bs) = raw.split_once(" | ").ok_or(anyhow!("invalid rule meta"))?;
     let (pfloor, it) = meta.split_once(' ').ok_or(anyhow!("invalid rule meta"))?;
-    let (p_initial_floor, iterations): (u16, usize) = (pfloor.parse()?, it.trim().parse()?);
+    let (p_initial_open, iterations): (u16, usize) = (pfloor.parse()?, it.trim().parse()?);
 
     let (b, s) = bs.split_once("s").ok_or(anyhow!("invalid rule"))?;
     let born = as_u8s(b.strip_prefix('b').ok_or(anyhow!("invalid rule"))?)?;
     let survive = as_u8s(s.trim())?;
 
     Ok(CellularAutomata {
-        p_initial_floor,
+        p_initial_open,
         iterations,
         rule: CaRule::LifeLike { born, survive },
         regions: Default::default(),

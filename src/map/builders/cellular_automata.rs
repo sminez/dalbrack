@@ -9,24 +9,27 @@
 //! https://conwaylife.com/wiki/Isotropic_non-totalistic_rule
 use crate::{
     Grid, Pos,
-    grid::dijkstra_map,
     map::{
-        FLOOR, Map, WALL,
+        Map,
         builders::{BuildMap, Snapshots, voronoi_regions},
         map_tile::MapTile,
     },
-    mob::{Mob, PIXIE},
     rng::RngHandle,
     state::State,
 };
-use rand::{Rng, seq::IndexedRandom};
 use sdl2::pixels::Color;
 
-const MIN_FLOOR_PERC: f32 = 0.45;
+const MIN_OPEN_PERC: f32 = 0.45;
 const N_SEEDS: usize = 16;
 
+pub const FILLED: usize = 0;
+pub const OPEN: usize = 1;
+
+/// Helper struct that can construct a map from a given cellular automata rule.
+/// When used directly via [BuildMap] this will return maps where filled cells are walls and open
+/// cells are floor but no other features.
 pub struct CellularAutomata {
-    pub p_initial_floor: u16,
+    pub p_initial_open: u16,
     pub iterations: usize,
     pub rule: CaRule,
     pub regions: Vec<Vec<Pos>>,
@@ -38,10 +41,46 @@ impl Default for CellularAutomata {
     }
 }
 
+impl CellularAutomata {
+    fn find_starting_cell(&self, map: &Map) -> Option<Pos> {
+        let mut pos = Pos::new(map.w as i32 / 2, map.h as i32 / 2);
+        while pos.x >= 0 {
+            if map[pos] == OPEN {
+                return Some(pos);
+            }
+
+            pos.x -= 1;
+        }
+
+        None
+    }
+
+    fn has_sufficient_open(&self, map: &Map) -> bool {
+        let n_open = map.tiles.cells.iter().filter(|&&t| t == OPEN).count();
+        let p_open = n_open as f32 / map.tiles.cells.len() as f32;
+
+        p_open >= MIN_OPEN_PERC
+    }
+
+    fn assign_regions(&mut self, map: &Map, rng: &mut RngHandle) {
+        let points = map.cells.iter().enumerate().flat_map(|(i, idx)| {
+            if *idx > 0 {
+                let x = i % map.w;
+                let y = i / map.w;
+                Some(Pos::new(x as i32, y as i32))
+            } else {
+                None
+            }
+        });
+
+        self.regions = voronoi_regions(N_SEEDS, map.w, map.h, points, rng);
+    }
+}
+
 impl BuildMap for CellularAutomata {
     fn bg_and_tiles(&self, state: &State<'_>) -> (Color, Vec<MapTile>) {
-        let bg = *state.palette.get("forestBG").unwrap();
-        let tiles = MapTile::forest_tiles(&state.ts, &state.palette);
+        let bg = *state.palette.get("black").unwrap();
+        let tiles = MapTile::dungeon_tiles(&state.ts, &state.palette);
 
         (bg, tiles)
     }
@@ -50,8 +89,8 @@ impl BuildMap for CellularAutomata {
         let mut rng = RngHandle::new();
 
         for i in 0..map.tiles.len() {
-            if rng.percentile() > self.p_initial_floor {
-                map.tiles[i] = FLOOR;
+            if rng.percentile() > self.p_initial_open {
+                map.tiles[i] = OPEN;
             }
         }
     }
@@ -67,72 +106,32 @@ impl BuildMap for CellularAutomata {
             snapshots.push(&map);
         }
 
-        let mut pos = Pos::new(map.w as i32 / 2, map.h as i32 / 2);
-        while pos.x >= 0 {
-            if map[pos] != FLOOR {
-                pos.x -= 1;
-                continue;
-            }
+        let pos = self.find_starting_cell(&map)?;
+        self.fill_unreachable_from(&[(pos, 0)], FILLED, &mut map);
 
-            // Fill in unreachable regions
-            let dmap = dijkstra_map(&map.tiles, &[(pos, 0)], |p| map.tile_at(p).path_cost);
-            for (i, cost) in dmap.cells.into_iter().enumerate() {
-                if cost == i32::MAX {
-                    map[i] = WALL;
-                }
-            }
-
-            let n_floor = map.tiles.cells.iter().filter(|&&t| t == FLOOR).count();
-            let p_floor = n_floor as f32 / map.tiles.cells.len() as f32;
-
-            if p_floor < MIN_FLOOR_PERC {
-                return None;
-            }
-
-            let points = map.cells.iter().enumerate().flat_map(|(i, idx)| {
-                if *idx > 0 {
-                    let x = i % map.w;
-                    let y = i / map.w;
-                    Some(Pos::new(x as i32, y as i32))
-                } else {
-                    None
-                }
-            });
-
-            self.regions = voronoi_regions(N_SEEDS, map.w, map.h, points, &mut state.rng);
-
-            // randomise trees
-            for tile in map.tiles.cells.iter_mut() {
-                if *tile == WALL {
-                    *tile = *[0, 2, 3, 4].choose(&mut state.rng).unwrap();
-                }
-            }
-
-            return Some((pos, map));
+        if !self.has_sufficient_open(&map) {
+            return None;
         }
 
-        None
+        self.assign_regions(&map, &mut state.rng);
+
+        Some((pos, map))
     }
 
-    fn populate(&mut self, state: &mut State<'_>) {
-        for r in self.regions.iter() {
-            let p = r[state.rng.random_range(0..r.len())];
-            Mob::spawn_spec(PIXIE, p.x, p.y, state);
-        }
-    }
+    fn populate(&mut self, _state: &mut State<'_>) {}
 }
 
-/// for cell p, how many WALL cells can be reached within a distance of n.
-fn n_walls(p: Pos, n: i32, map: &Map) -> u8 {
+/// for cell p, how many FILLED cells can be reached within a distance of n.
+fn n_filled(p: Pos, n: i32, current: &Grid<usize>) -> u8 {
     let mut count = 0;
 
     for dy in -n..=n {
         for dx in -n..=n {
             let q = p + Pos::new(dx, dy);
-            if ((dy == 0) && (dx == 0)) || !map.contains_pos(q) {
+            if ((dy == 0) && (dx == 0)) || !current.contains_pos(q) {
                 continue;
             }
-            if map.tiles[q] == WALL {
+            if current[q] == FILLED {
                 count += 1;
             }
         }
@@ -144,45 +143,46 @@ fn n_walls(p: Pos, n: i32, map: &Map) -> u8 {
 // Rules
 
 pub enum CaRule {
-    Fn(fn(Pos, usize, &Map) -> bool),
+    Fn(fn(Pos, usize, &Grid<usize>) -> bool),
     LifeLike { born: Vec<u8>, survive: Vec<u8> },
 }
 
 impl CaRule {
-    pub fn run(&self, i: usize, map: &Map) -> Grid<usize> {
-        let mut new = map.tiles.clone();
+    pub fn run(&self, i: usize, current: &Grid<usize>) -> Grid<usize> {
+        let mut new = current.clone();
 
-        for y in 1..map.h - 1 {
-            for x in 1..map.w - 1 {
+        for y in 1..current.h - 1 {
+            for x in 1..current.w - 1 {
                 let p = Pos::new(x as i32, y as i32);
-                let wall = self.is_wall(p, i, map);
-                new[p] = if wall { WALL } else { FLOOR };
+                new[p] = self.state_for(p, i, current);
             }
         }
 
         new
     }
 
-    pub fn is_wall(&self, p: Pos, i: usize, map: &Map) -> bool {
-        match self {
-            Self::Fn(f) => (f)(p, i, map),
-            Self::LifeLike { born, survive } => life_like_rule(p, map, born, survive),
-        }
+    pub fn state_for(&self, p: Pos, i: usize, current: &Grid<usize>) -> usize {
+        let filled = match self {
+            Self::Fn(f) => (f)(p, i, current),
+            Self::LifeLike { born, survive } => life_like_rule(p, current, born, survive),
+        };
+
+        if filled { FILLED } else { OPEN }
     }
 }
 
 /// See https://en.wikipedia.org/wiki/Life-like_cellular_automaton
-fn life_like_rule(p: Pos, map: &Map, born: &[u8], survive: &[u8]) -> bool {
-    let n = n_walls(p, 1, map);
-    let alive = map[p] == WALL;
+fn life_like_rule(p: Pos, current: &Grid<usize>, born: &[u8], survive: &[u8]) -> bool {
+    let n = n_filled(p, 1, current);
+    let alive = current[p] == FILLED;
 
     (alive && survive.contains(&n)) || (!alive && born.contains(&n))
 }
 
 macro_rules! rule {
-    ($name:ident, $p_floor:expr, $iterations:expr, $impl:expr) => {
-        pub fn $name(pos: Pos, i: usize, map: &Map) -> bool {
-            $impl(pos, i, map)
+    ($name:ident, $p_open:expr, $iterations:expr, $impl:expr) => {
+        pub fn $name(pos: Pos, i: usize, current: &Grid<usize>) -> bool {
+            $impl(pos, i, current)
         }
 
         impl CaRule {
@@ -194,7 +194,7 @@ macro_rules! rule {
         impl CellularAutomata {
             pub fn $name() -> Self {
                 Self {
-                    p_initial_floor: $p_floor,
+                    p_initial_open: $p_open,
                     iterations: $iterations,
                     rule: CaRule::$name(),
                     regions: Default::default(),
@@ -203,9 +203,9 @@ macro_rules! rule {
         }
     };
 
-    (@life $name:ident, $p_floor:expr, $iterations:expr, [$($born:expr),*], [$($survive:expr),*]) => {
-        pub fn $name(pos: Pos, _: usize, map: &Map) -> bool {
-            life_like_rule(pos, map, &[$($born),*], &[$($survive),*])
+    (@life $name:ident, $p_open:expr, $iterations:expr, [$($born:expr),*], [$($survive:expr),*]) => {
+        pub fn $name(pos: Pos, _: usize, current: &Grid<usize>) -> bool {
+            life_like_rule(pos, current, &[$($born),*], &[$($survive),*])
         }
 
         impl CaRule {
@@ -217,7 +217,7 @@ macro_rules! rule {
         impl CellularAutomata {
             pub fn $name() -> Self {
                 Self {
-                    p_initial_floor: $p_floor,
+                    p_initial_open: $p_open,
                     iterations: $iterations,
                     rule: CaRule::Fn($name),
                     regions: Default::default(),
@@ -227,15 +227,15 @@ macro_rules! rule {
     };
 }
 
-rule!(simple, 55, 15, |p: Pos, _i: usize, map: &Map| {
-    let n = n_walls(p, 1, map);
+rule!(simple, 55, 15, |p: Pos, _i: usize, g: &Grid<usize>| {
+    let n = n_filled(p, 1, g);
 
     [0, 5, 6, 7, 8].contains(&n)
 });
 
-rule!(rogue_basin, 60, 7, |p: Pos, i: usize, map: &Map| {
-    let n1 = n_walls(p, 1, map);
-    let n2 = n_walls(p, 2, map);
+rule!(rogue_basin, 60, 7, |p: Pos, i: usize, g: &Grid<usize>| {
+    let n1 = n_filled(p, 1, g);
+    let n2 = n_filled(p, 2, g);
 
     if i < 4 { n1 >= 5 || n2 <= 2 } else { n1 >= 5 }
 });

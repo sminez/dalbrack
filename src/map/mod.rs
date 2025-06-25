@@ -12,7 +12,7 @@ pub mod fov;
 pub mod map_tile;
 mod mapset;
 
-use map_tile::{FLOOR, WALL};
+use map_tile::WALL;
 pub use mapset::MapSet;
 
 #[derive(Debug, Clone)]

@@ -1,17 +1,20 @@
 //! Map building algorithms
 use crate::{
     Pos,
+    grid::dijkstra_map,
     map::{Map, MapTile},
     state::State,
 };
+use sdl2::pixels::Color;
 
 mod bsp;
 mod cellular_automata;
+mod forest;
 mod voronoi;
 
 pub use bsp::BspDungeon;
 pub use cellular_automata::{CaRule, CellularAutomata};
-use sdl2::pixels::Color;
+pub use forest::Forest;
 pub use voronoi::{voronoi_regions, voronoi_regions_from_seeds, voronoi_seeds};
 
 pub trait BuildMap: Send + Sync {
@@ -81,6 +84,15 @@ pub trait BuildMap: Send + Sync {
             }
 
             snapshots.inner.clear();
+        }
+    }
+
+    fn fill_unreachable_from(&self, from: &[(Pos, i32)], fill: usize, map: &mut Map) {
+        let dmap = dijkstra_map(&map.tiles, from, |p| map.tile_at(p).path_cost);
+        for (i, cost) in dmap.cells.into_iter().enumerate() {
+            if cost == i32::MAX {
+                map[i] = fill;
+            }
         }
     }
 }

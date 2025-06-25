@@ -3,7 +3,7 @@ use dalbrack::{
     action::{Action, AvailableActions, toggle_explored},
     input::map_event_in_game_state,
     map::{
-        builders::{BuildConfig, BuildMap, CellularAutomata, MapBuilder},
+        builders::{BuildConfig, BuildMap, Forest},
         fov::{FovRange, LightSource},
     },
     player::Player,
@@ -19,8 +19,7 @@ const CFG: BuildConfig = BuildConfig { populated: true };
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
-    let (pos, map) =
-        CellularAutomata::walled_cities().new_map(W as usize, H as usize, CFG, &mut state);
+    let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, &mut state);
 
     state.set_map(map);
 
@@ -72,8 +71,7 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
                 clear_with_comp::<LightSource>(state)?;
                 clear_with_comp::<AvailableActions>(state)?;
 
-                let builder = MapBuilder::from(CellularAutomata::walled_cities);
-                let (pos, map) = builder.get().new_map(W as usize, H as usize, CFG, state);
+                let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, state);
                 state.set_map(map);
                 Player::warp(pos, state);
 

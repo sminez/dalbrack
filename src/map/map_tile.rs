@@ -45,11 +45,11 @@ impl MapTile {
     pub fn forest_tiles(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Vec<Self> {
         vec![
             // default "wall"
-            Self::new("club", "tree1", None, u8::MAX, 0.7, ts, palette),
+            Self::new("club", "tree1", None, u8::MAX, 0.6, ts, palette),
             // floor
             Self::new("dot", "earth", Some(1), 1, 0.0, ts, palette),
             // other trees
-            Self::new("club", "tree2", None, u8::MAX, 0.7, ts, palette),
+            Self::new("club", "tree2", None, u8::MAX, 0.6, ts, palette),
             Self::new("spade", "tree1", None, u8::MAX, 0.7, ts, palette),
             Self::new("spade", "tree2", None, u8::MAX, 0.7, ts, palette),
         ]
