@@ -140,6 +140,12 @@ impl<'a> TileSet<'a> {
         self.idents.get(ident).map(|&idx| Tile::new(idx))
     }
 
+    pub fn tile_with_color(&self, ident: &str, color: Color) -> Option<Tile> {
+        self.idents
+            .get(ident)
+            .map(|&idx| Tile::new_with_color(idx, color))
+    }
+
     pub fn tile_index(&self, ident: &str) -> Option<usize> {
         self.idents.get(ident).copied()
     }

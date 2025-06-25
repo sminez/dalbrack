@@ -8,25 +8,36 @@ use dalbrack::{
     },
     player::Player,
     state::State,
+    ui::Box,
 };
 use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 
-const DXY: u32 = 25;
+const DXY: u32 = 36;
 const W: i32 = 60;
-const H: i32 = 40;
+const SCREEN_H: i32 = 40;
+const H: i32 = SCREEN_H - 5;
 const CFG: BuildConfig = BuildConfig { populated: true };
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
+    let mut state = State::init(DXY * W as u32, DXY * SCREEN_H as u32, DXY, TITLE)?;
     let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, &mut state);
+
+    // This needs to be a first class thing in the UI rather than directly spawning here
+    let white = *state.palette.get("ibmWhite").unwrap();
+    state.world.spawn((Box::new(0, H, W - 1, 4, white),));
+    state.world.spawn((
+        Pos::new(1, H + 1),
+        String::from("You enter the woods of Dalbrack"),
+        white,
+    ));
 
     state.set_map(map);
 
     state.e_player = state.world.spawn(
         Player::new_base_bundle(pos, FovRange(30), &state)
             .add(LightSource {
-                range: 18,
+                range: 28,
                 color: Color::RGB(80, 50, 20),
             })
             .build(),
@@ -93,11 +104,12 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
             ..
         } => Action::from(move |state: &mut State<'_>| {
             let mut rng = rand::rng();
-            let color = Color::RGB(
-                rng.random_range(60..150),
-                rng.random_range(60..150),
-                rng.random_range(60..150),
-            );
+            let color = *state.palette.get("fire1").unwrap();
+            // Color::RGB(
+            //     rng.random_range(60..150),
+            //     rng.random_range(60..150),
+            //     rng.random_range(60..150),
+            // );
 
             state.world.spawn((
                 Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32),

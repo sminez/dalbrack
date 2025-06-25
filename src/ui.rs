@@ -129,6 +129,21 @@ impl<'a> Sdl2UI<'a> {
     }
 }
 
+#[derive(Debug)]
+pub struct Box {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub color: Color,
+}
+
+impl Box {
+    pub fn new(x: i32, y: i32, w: i32, h: i32, color: Color) -> Self {
+        Self { x, y, w, h, color }
+    }
+}
+
 pub fn blend(color1: Color, color2: Color, perc: f32) -> Color {
     let (c1, m1, y1, k1) = to_cmyk(color1);
     let (c2, m2, y2, k2) = to_cmyk(color2);

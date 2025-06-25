@@ -10,7 +10,7 @@ use crate::{
     player::Player,
     rng::RngHandle,
     tileset::{Tile, TileSet},
-    ui::Sdl2UI,
+    ui::{Box, Sdl2UI},
 };
 use hecs::{Entity, World};
 use sdl2::{pixels::Color, rect::Rect};
@@ -220,6 +220,7 @@ impl<'a> State<'a> {
     pub fn blit_all(&mut self) -> anyhow::Result<()> {
         self.blit_map()?;
         self.blit_tiles()?;
+        self.blit_boxes()?;
         self.blit_text()?;
 
         Ok(())
@@ -284,20 +285,62 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn blit_text(&mut self) -> anyhow::Result<()> {
+    pub fn blit_boxes(&mut self) -> anyhow::Result<()> {
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
 
+        for (_entity, &Box { x, y, w, h, color }) in self.world.query_mut::<&Box>() {
+            let corners = [
+                (x, y, "box-ddrr"),
+                (x + w, y, "box-ddll"),
+                (x, y + h, "box-uurr"),
+                (x + w, y + h, "box-uull"),
+            ];
+
+            for (dx, dy, ident) in corners {
+                r.x = dx * dxy;
+                r.y = dy * dxy;
+                let tile = self.ts.tile_with_color(ident, color).unwrap();
+                self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
+            }
+
+            for i in 1..w {
+                for y in [y, y + h] {
+                    r.x = (x + i) * dxy;
+                    r.y = y * dxy;
+                    let tile = self.ts.tile_with_color("box-hh", color).unwrap();
+                    self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
+                }
+            }
+
+            for i in 1..h {
+                for x in [x, x + w] {
+                    r.x = x * dxy;
+                    r.y = (y + i) * dxy;
+                    let tile = self.ts.tile_with_color("box-vv", color).unwrap();
+                    self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn blit_text(&mut self) -> anyhow::Result<()> {
+        let tdxy = 2 * self.ui.dxy / 3;
+        let mut r = Rect::new(0, 0, tdxy, tdxy);
+        let dxy = self.ui.dxy as i32;
+
         let mut buf = [0; 4];
-        for (_entity, (pos, s)) in self.world.query_mut::<(&Pos, &String)>() {
+        for (_entity, (pos, s, color)) in self.world.query_mut::<(&Pos, &String, &Color)>() {
             r.x = pos.x * dxy;
             r.y = pos.y * dxy;
 
             for ch in s.chars() {
                 let ident = ch.encode_utf8(&mut buf);
-                let tile = self.ts.tile(ident).unwrap();
+                let tile = self.ts.tile_with_color(ident, *color).unwrap();
                 self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
-                r.x += dxy;
+                r.x += tdxy as i32;
             }
         }
 
