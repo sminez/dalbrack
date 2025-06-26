@@ -267,19 +267,28 @@ impl<'a> State<'a> {
     }
 
     pub fn blit_tiles(&mut self) -> anyhow::Result<()> {
+        let fov = self.world.get::<&Fov>(self.e_player).ok();
+        let map = self.mapset.current_mut();
+        let fov_and_light_map = match map.light_map.as_ref() {
+            Some(lm) => fov.map(|fov| (fov, lm)),
+            None => None,
+        };
+
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
         let dxy = self.ui.dxy as i32;
 
         for (_entity, (pos, tile)) in self.world.query::<(&Pos, &Tile)>().iter() {
-            if let Ok(fov) = self.world.get::<&Fov>(self.e_player) {
+            let mut tile = *tile;
+            if let Some((fov, light_map)) = fov_and_light_map.as_ref() {
                 if !fov.points.contains(pos) {
                     continue;
                 }
-            };
+                tile.color = light_map.apply_light_level(*pos, tile.color);
+            }
 
             r.x = pos.x * dxy;
             r.y = pos.y * dxy;
-            self.ts.blit_tile(tile, r, &mut self.ui.buf)?;
+            self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
         }
 
         Ok(())

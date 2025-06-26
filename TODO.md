@@ -1,5 +1,8 @@
 # TODO
 
+- !! Sort out only rendering entities that are on the current map
+  -> Probably now is a good time to sort out the blitting ordering as well
+
 - assign weights to actions and may a weighted choice rather than just first returned
 - FollowPath needs to be able to stop if the actor has encountered new information that
   should cause it to update its behaviour
