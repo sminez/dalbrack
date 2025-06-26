@@ -17,6 +17,7 @@ use crate::{
     rng::RngHandle,
     state::State,
 };
+use hecs::Entity;
 use sdl2::pixels::Color;
 
 const MIN_OPEN_PERC: f32 = 0.45;
@@ -144,7 +145,9 @@ impl BuildMap for CellularAutomata {
         Some((pos, map))
     }
 
-    fn populate(&mut self, _state: &mut State<'_>) {}
+    fn populate(&mut self, _state: &mut State<'_>) -> Vec<Entity> {
+        Vec::new()
+    }
 }
 
 /// for cell p, how many FILLED cells can be reached within a distance of n.

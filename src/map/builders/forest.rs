@@ -10,6 +10,7 @@ use crate::{
     mob::{Mob, PIXIE},
     state::State,
 };
+use hecs::Entity;
 use rand::{Rng, seq::IndexedRandom};
 use sdl2::pixels::Color;
 
@@ -64,10 +65,14 @@ impl BuildMap for Forest {
         Some((pos, map))
     }
 
-    fn populate(&mut self, state: &mut State<'_>) {
-        for r in self.ca.regions.iter() {
-            let p = r[state.rng.random_range(0..r.len())];
-            Mob::spawn_spec(PIXIE, p.x, p.y, state);
-        }
+    fn populate(&mut self, state: &mut State<'_>) -> Vec<Entity> {
+        self.ca
+            .regions
+            .iter()
+            .map(|r| {
+                let p = r[state.rng.random_range(0..r.len())];
+                Mob::spawn_spec(PIXIE, p.x, p.y, state)
+            })
+            .collect()
     }
 }

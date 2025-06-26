@@ -9,6 +9,7 @@ use crate::{
     rng::RngHandle,
     state::State,
 };
+use hecs::Entity;
 use rand::{Rng, rngs::ThreadRng};
 use sdl2::{pixels::Color, rect::Rect};
 use std::cmp::{max, min};
@@ -55,11 +56,14 @@ impl BuildMap for BspDungeon {
         Some((Pos::new(p.x, p.y), map))
     }
 
-    fn populate(&mut self, state: &mut State<'_>) {
-        for r in self.rooms.iter() {
-            let c = r.center();
-            Mob::spawn_spec(PIXIE, c.x, c.y, state);
-        }
+    fn populate(&mut self, state: &mut State<'_>) -> Vec<Entity> {
+        self.rooms
+            .iter()
+            .map(|r| {
+                let c = r.center();
+                Mob::spawn_spec(PIXIE, c.x, c.y, state)
+            })
+            .collect()
     }
 }
 

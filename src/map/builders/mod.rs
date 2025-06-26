@@ -5,6 +5,7 @@ use crate::{
     map::{Map, MapTile},
     state::State,
 };
+use hecs::Entity;
 use sdl2::pixels::Color;
 
 mod bsp;
@@ -30,7 +31,7 @@ pub trait BuildMap: Send + Sync {
         snapshots: &mut Snapshots,
     ) -> Option<(Pos, Map)>;
 
-    fn populate(&mut self, state: &mut State<'_>);
+    fn populate(&mut self, state: &mut State<'_>) -> Vec<Entity>;
 
     fn new_map(
         &mut self,
@@ -52,11 +53,13 @@ pub trait BuildMap: Send + Sync {
             self.init_map(&mut map);
             snapshots.push(&map);
 
-            if let Some(output) = self.build(map, state, &mut snapshots) {
+            if let Some((pos, map)) = self.build(map, state, &mut snapshots) {
                 if config.populated {
-                    self.populate(state);
+                    for entity in self.populate(state) {
+                        state.world.insert_one(entity, map.id).unwrap();
+                    }
                 }
-                return output;
+                return (pos, map);
             }
 
             snapshots.inner.clear();

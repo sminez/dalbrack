@@ -5,6 +5,7 @@ use std::{
     cmp::{max, min},
     collections::HashSet,
     ops::{Deref, DerefMut},
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 pub mod builders;
@@ -15,8 +16,16 @@ mod mapset;
 use map_tile::WALL;
 pub use mapset::MapSet;
 
+/// monatonically increasing map ID
+static NEXT_MAP_ID: AtomicU64 = AtomicU64::new(0);
+
+/// Entities on a given map have this as a component to track which map they are on
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MapId(pub u64);
+
 #[derive(Debug, Clone)]
 pub struct Map {
+    pub id: MapId,
     pub tiles: Grid<usize>,
     pub explored: HashSet<usize>,
     pub tile_defs: Vec<MapTile>,
@@ -28,6 +37,7 @@ pub struct Map {
 impl Map {
     pub fn new(w: usize, h: usize, tile_defs: Vec<MapTile>, bg: Color, hidden: Color) -> Self {
         Self {
+            id: MapId(NEXT_MAP_ID.fetch_add(1, Ordering::Relaxed)),
             tiles: Grid::new(w, h, 0),
             explored: HashSet::new(),
             tile_defs,
