@@ -19,7 +19,7 @@ const H: i32 = SCREEN_H - 5;
 const CFG: BuildConfig = BuildConfig { populated: true };
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DisplayMode::FullScreen(W as u32, SCREEN_H as u32), TITLE)?;
+    let mut state = State::init(DisplayMode::FullScreen, TITLE)?;
     let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, &mut state);
 
     // This needs to be a first class thing in the UI rather than directly spawning here
@@ -48,6 +48,9 @@ pub fn main() -> anyhow::Result<()> {
 
     while state.running {
         let event = state.ui.wait_event();
+        if let Event::MouseMotion { .. } = event {
+            continue;
+        }
 
         match map_event_in_game_state(&event, &state) {
             Some(action) => state.action_queue.push_back(action),
@@ -104,14 +107,8 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
         } => Action::from(move |state: &mut State<'_>| {
             let mut rng = rand::rng();
             let color = *state.palette.get("fire1").unwrap();
-            // Color::RGB(
-            //     rng.random_range(60..150),
-            //     rng.random_range(60..150),
-            //     rng.random_range(60..150),
-            // );
-
             state.world.spawn((
-                Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32),
+                state.ui.map_click(x, y),
                 state.tile_with_color("star", color),
                 LightSource {
                     range: rng.random_range(5..12),
@@ -129,7 +126,7 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
             y,
             ..
         } => Action::from(move |state: &mut State<'_>| {
-            let pos = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
+            let pos = state.ui.map_click(x, y);
             let map = state.mapset.current_mut();
             map.tiles[pos] = if map.tiles[pos] == 0 { 1 } else { 0 };
 

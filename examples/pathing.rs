@@ -64,7 +64,7 @@ pub fn main() -> anyhow::Result<()> {
                     },
 
                     Event::MouseMotion { x, y, .. } if path_to_cursor => {
-                        let target = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
+                        let target = state.ui.map_click(x, y);
                         if path_target != Some(target) {
                             clear_path(&mut state);
                             path_target = Some(target);

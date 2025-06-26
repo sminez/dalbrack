@@ -1,3 +1,4 @@
+use crate::Pos;
 use anyhow::anyhow;
 use sdl2::{
     EventPump, Sdl, VideoSubsystem,
@@ -9,20 +10,23 @@ use sdl2::{
     video::{Window, WindowContext},
 };
 
+const LOGICAL_W: u32 = 60;
+const LOGICAL_H: u32 = 40;
+
 pub enum DisplayMode {
     Fixed(u32, u32, u32),
-    FullScreen(u32, u32),
+    FullScreen,
 }
 
 pub struct Sdl2UI<'a> {
     w: u32,
     h: u32,
     pub dxy: u32,
+    target: Option<Rect>,
     _ctx: Sdl,
     _video_ss: VideoSubsystem,
     canvas: Canvas<Window>,
     pub buf: Surface<'a>,
-    target: Rect,
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
     bg: Color,
@@ -33,20 +37,23 @@ impl<'a> Sdl2UI<'a> {
         let ctx = sdl2::init().map_err(|e| anyhow!("{e}"))?;
         let video_ss = ctx.video().map_err(|e| anyhow!("{e}"))?;
 
-        let (win, w, h, dxy, offset) = match mode {
-            DisplayMode::FullScreen(w, h) => {
-                let win = video_ss
-                    .window(window_title, 900, 600)
+        let (mut canvas, w, h, dxy) = match mode {
+            DisplayMode::FullScreen => {
+                let mut win = video_ss
+                    .window(window_title, LOGICAL_W, LOGICAL_H)
+                    .resizable()
                     .fullscreen_desktop()
                     .build()?;
                 let idx = win.display_index().map_err(|e| anyhow!("{e}"))?;
                 let mode = video_ss
                     .current_display_mode(idx)
                     .map_err(|e| anyhow!("{e}"))?;
-                let dxy = mode.h as u32 / h;
-                let offset = (mode.w as u32 - (w * dxy)) / 2;
+                let dxy = mode.h as u32 / LOGICAL_H;
+                win.set_size(LOGICAL_W * dxy, LOGICAL_H * dxy).unwrap();
 
-                (win, w * dxy, h * dxy, dxy, offset as i32)
+                let canvas = win.into_canvas().target_texture().present_vsync().build()?;
+
+                (canvas, LOGICAL_W, LOGICAL_H, dxy)
             }
 
             DisplayMode::Fixed(w, h, dxy) => {
@@ -54,16 +61,17 @@ impl<'a> Sdl2UI<'a> {
                     .window(window_title, w * dxy, h * dxy)
                     .position_centered()
                     .build()?;
-                (win, w * dxy, h * dxy, dxy, 0)
+
+                let canvas = win.into_canvas().target_texture().present_vsync().build()?;
+
+                (canvas, w * dxy, h * dxy, dxy)
             }
         };
 
-        let mut canvas = win.into_canvas().target_texture().present_vsync().build()?;
         let tc = canvas.texture_creator();
         let evts = ctx.event_pump().map_err(|e| anyhow!("{e}"))?;
 
         let buf = Surface::new(w, h, PixelFormatEnum::ARGB8888).map_err(|e| anyhow!("{e}"))?;
-        let target = Rect::new(offset, 0, w, h);
 
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
@@ -73,11 +81,11 @@ impl<'a> Sdl2UI<'a> {
             w,
             h,
             dxy,
+            target: None,
             _ctx: ctx,
             _video_ss: video_ss,
             canvas,
             buf,
-            target,
             tc,
             evts,
             bg: Color::MAGENTA, // so its obvious when its not been set
@@ -96,12 +104,23 @@ impl<'a> Sdl2UI<'a> {
             } => {
                 self.w = w as u32;
                 self.h = h as u32;
+                self.dxy = self.h / LOGICAL_H;
+                let offset = (h as u32 - LOGICAL_H * self.dxy) as i32;
+                self.target = Some(Rect::new(offset, 0, self.w, self.h));
                 self.buf = Surface::new(w as u32, h as u32, PixelFormatEnum::ARGB8888).unwrap();
+
                 None
             }
 
             evt => Some(evt),
         }
+    }
+
+    pub fn map_click(&self, x: i32, y: i32) -> Pos {
+        Pos::new(
+            (x - self.target.map(|r| r.x).unwrap_or_default()) / self.dxy as i32,
+            y / self.dxy as i32,
+        )
     }
 
     /// Poll for currently pending events.
@@ -150,7 +169,7 @@ impl<'a> Sdl2UI<'a> {
     pub fn render(&mut self) -> anyhow::Result<()> {
         let tx = self.buf.as_texture(&self.tc)?;
         self.canvas
-            .copy(&tx, None, Some(self.target))
+            .copy(&tx, None, self.target)
             .map_err(|e| anyhow!("unable to copy buffer to canvas: {e}"))?;
         self.canvas.present();
 

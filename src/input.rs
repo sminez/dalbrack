@@ -1,6 +1,5 @@
 //! Input handling for SDL2 events
 use crate::{
-    Pos,
     action::{Action, quit, zoom_in, zoom_out},
     actor::Actor,
     state::State,
@@ -41,10 +40,7 @@ pub fn map_event_in_game_state(event: &Event, state: &State<'_>) -> Option<Actio
             x,
             y,
             ..
-        } => {
-            let target = Pos::new(x / state.ui.dxy as i32, y / state.ui.dxy as i32);
-            Actor::path_to_in_player_explored(target, state.e_player, state)
-        }
+        } => Actor::path_to_in_player_explored(state.ui.map_click(x, y), state.e_player, state),
 
         _ => None,
     }
