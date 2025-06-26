@@ -8,19 +8,18 @@ use dalbrack::{
     },
     player::Player,
     state::State,
-    ui::Box,
+    ui::{Box, DisplayMode},
 };
 use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
 
-const DXY: u32 = 36;
 const W: i32 = 60;
 const SCREEN_H: i32 = 40;
 const H: i32 = SCREEN_H - 5;
 const CFG: BuildConfig = BuildConfig { populated: true };
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * SCREEN_H as u32, DXY, TITLE)?;
+    let mut state = State::init(DisplayMode::FullScreen(W as u32, SCREEN_H as u32), TITLE)?;
     let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, &mut state);
 
     // This needs to be a first class thing in the UI rather than directly spawning here

@@ -2,13 +2,14 @@ use dalbrack::{
     TITLE,
     map::builders::{BspDungeon, BuildMap, CellularAutomata},
     state::State,
+    ui::DisplayMode,
 };
 use sdl2::{event::Event, keyboard::Keycode};
 use std::time::Instant;
 
 const DXY: u32 = 25;
-const W: i32 = 60;
-const H: i32 = 40;
+const W: u32 = 60;
+const H: u32 = 40;
 const FRAME_LEN: u128 = 100;
 
 macro_rules! set {
@@ -20,7 +21,7 @@ macro_rules! set {
 }
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
+    let mut state = State::init(DisplayMode::Fixed(W, H, DXY), TITLE)?;
     let mut builder = Box::new(CellularAutomata::default()) as Box<dyn BuildMap>;
     let mut maps = builder.trace_build(W as usize, H as usize, &mut state);
     maps.reverse();

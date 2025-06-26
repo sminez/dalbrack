@@ -10,7 +10,7 @@ use dalbrack::{
     rng::RngHandle,
     state::State,
     tileset::Tile,
-    ui::blend,
+    ui::{DisplayMode, blend},
 };
 use notify_debouncer_full::{DebounceEventResult, new_debouncer, notify::RecursiveMode};
 use rand::Rng;
@@ -40,7 +40,7 @@ macro_rules! set {
 }
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
+    let mut state = State::init(DisplayMode::Fixed(W as u32, H as u32, DXY), TITLE)?;
     let mut builder = Box::new(parse_ca_rule()?) as Box<dyn BuildMap>;
     let (pos, mut map) = builder.new_map(W as usize, H as usize, CFG, &mut state);
     map.explore_all();

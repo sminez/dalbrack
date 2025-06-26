@@ -10,7 +10,7 @@ use crate::{
     player::Player,
     rng::RngHandle,
     tileset::{Tile, TileSet},
-    ui::{Box, Sdl2UI},
+    ui::{Box, DisplayMode, Sdl2UI},
 };
 use hecs::{Entity, World};
 use sdl2::{pixels::Color, rect::Rect};
@@ -34,10 +34,10 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    pub fn init(w: u32, h: u32, dxy: u32, window_title: &str) -> anyhow::Result<Self> {
+    pub fn init(mode: DisplayMode, window_title: &str) -> anyhow::Result<Self> {
         let ts = TileSet::default();
         let palette = parse_color_palette()?;
-        let ui = Sdl2UI::init(w, h, dxy, window_title)?;
+        let ui = Sdl2UI::init(mode, window_title)?;
         let mut world = World::new();
         let e_player = world.spawn(());
         let mapset = MapSet::new();

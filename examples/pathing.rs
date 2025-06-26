@@ -7,19 +7,20 @@ use dalbrack::{
     },
     player::Player,
     state::State,
+    ui::DisplayMode,
 };
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 use std::time::Instant;
 
 const DXY: u32 = 25;
-const W: i32 = 60;
-const H: i32 = 40;
+const W: u32 = 60;
+const H: u32 = 40;
 const CFG: BuildConfig = BuildConfig { populated: false };
 
 struct PathTile;
 
 pub fn main() -> anyhow::Result<()> {
-    let mut state = State::init(DXY * W as u32, DXY * H as u32, DXY, TITLE)?;
+    let mut state = State::init(DisplayMode::Fixed(W, H, DXY), TITLE)?;
     let (pos, mut map) = BspDungeon::default().new_map(W as usize, H as usize, CFG, &mut state);
     map.explore_all();
     state.set_map(map);

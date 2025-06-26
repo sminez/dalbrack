@@ -3,10 +3,16 @@ use sdl2::{
     EventPump, Sdl, VideoSubsystem,
     event::{Event, WindowEvent},
     pixels::{Color, PixelFormatEnum},
+    rect::Rect,
     render::{Canvas, TextureCreator},
     surface::Surface,
     video::{Window, WindowContext},
 };
+
+pub enum DisplayMode {
+    Fixed(u32, u32, u32),
+    FullScreen(u32, u32),
+}
 
 pub struct Sdl2UI<'a> {
     w: u32,
@@ -16,26 +22,48 @@ pub struct Sdl2UI<'a> {
     _video_ss: VideoSubsystem,
     canvas: Canvas<Window>,
     pub buf: Surface<'a>,
+    target: Rect,
     tc: TextureCreator<WindowContext>,
     evts: EventPump,
     bg: Color,
 }
 
 impl<'a> Sdl2UI<'a> {
-    pub fn init(w: u32, h: u32, dxy: u32, window_title: &str) -> anyhow::Result<Self> {
+    pub fn init(mode: DisplayMode, window_title: &str) -> anyhow::Result<Self> {
         let ctx = sdl2::init().map_err(|e| anyhow!("{e}"))?;
         let video_ss = ctx.video().map_err(|e| anyhow!("{e}"))?;
 
-        let win = video_ss
-            .window(window_title, w, h)
-            .position_centered()
-            .build()?;
+        let (win, w, h, dxy, offset) = match mode {
+            DisplayMode::FullScreen(w, h) => {
+                let win = video_ss
+                    .window(window_title, 900, 600)
+                    .fullscreen_desktop()
+                    .build()?;
+                let idx = win.display_index().map_err(|e| anyhow!("{e}"))?;
+                let mode = video_ss
+                    .current_display_mode(idx)
+                    .map_err(|e| anyhow!("{e}"))?;
+                let dxy = mode.h as u32 / h;
+                let offset = (mode.w as u32 - (w * dxy)) / 2;
+
+                (win, w * dxy, h * dxy, dxy, offset as i32)
+            }
+
+            DisplayMode::Fixed(w, h, dxy) => {
+                let win = video_ss
+                    .window(window_title, w * dxy, h * dxy)
+                    .position_centered()
+                    .build()?;
+                (win, w * dxy, h * dxy, dxy, 0)
+            }
+        };
 
         let mut canvas = win.into_canvas().target_texture().present_vsync().build()?;
         let tc = canvas.texture_creator();
         let evts = ctx.event_pump().map_err(|e| anyhow!("{e}"))?;
 
         let buf = Surface::new(w, h, PixelFormatEnum::ARGB8888).map_err(|e| anyhow!("{e}"))?;
+        let target = Rect::new(offset, 0, w, h);
 
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
@@ -49,6 +77,7 @@ impl<'a> Sdl2UI<'a> {
             _video_ss: video_ss,
             canvas,
             buf,
+            target,
             tc,
             evts,
             bg: Color::MAGENTA, // so its obvious when its not been set
@@ -121,7 +150,7 @@ impl<'a> Sdl2UI<'a> {
     pub fn render(&mut self) -> anyhow::Result<()> {
         let tx = self.buf.as_texture(&self.tc)?;
         self.canvas
-            .copy(&tx, None, None)
+            .copy(&tx, None, Some(self.target))
             .map_err(|e| anyhow!("unable to copy buffer to canvas: {e}"))?;
         self.canvas.present();
 
