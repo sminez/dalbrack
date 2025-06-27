@@ -15,8 +15,10 @@ use std::{
 const DIST_SCALE: f32 = 0.03;
 /// Exponent to correct with when r^2 drops below 1.0
 const EXP_FALLOFF: f32 = 0.11;
-/// % of original color to use when blending light levels
-const BLEND_PERC: f32 = 0.5;
+/// % of original color to use when blending foreground light levels
+const FG_BLEND_PERC: f32 = 0.5;
+/// % of original color to use when blending background light levels
+const BG_BLEND_PERC: f32 = 0.96;
 /// Smoothing factor added to radius to make the edge points "nicer"
 const R_SMOOTHING: f32 = 0.33;
 
@@ -159,9 +161,18 @@ impl LightMap {
             })
             .filter(|(p, opacity)| fov.points.contains(p) && *opacity < 1.0)
             .map(|(pos, opacity)| {
-                let d = from.fdist(pos);
+                // The origin ends up blowing out if due to having zero displacement so we treat it
+                // as being the cell to the right instead.
+                let p = if pos != from {
+                    pos
+                } else {
+                    pos + Pos::new(1, 0)
+                };
+
+                let d = from.fdist(p);
                 let mut falloff = DIST_SCALE * d.powi(2);
                 if falloff < 1.0 {
+                    // need to force this to be clamped for origin
                     falloff = falloff.powf(EXP_FALLOFF);
                 }
 
@@ -185,7 +196,16 @@ impl LightMap {
             None => return self.c_hidden,
         };
 
-        blend(color, light_color, BLEND_PERC)
+        blend(color, light_color, FG_BLEND_PERC)
+    }
+
+    pub fn apply_bg_light_level(&self, p: Pos, color: Color) -> Color {
+        let light_color = match self.points.get(&p) {
+            Some(c) => *c,
+            None => return self.c_hidden,
+        };
+
+        blend(color, light_color, BG_BLEND_PERC)
     }
 }
 

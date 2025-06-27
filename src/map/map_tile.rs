@@ -10,6 +10,7 @@ pub const FLOOR: usize = 1;
 pub struct MapTile {
     /// The sprite to use for this tile
     pub t: Tile,
+    pub bg: Option<Color>,
     /// Additional weight for pathfinding relative to floor tiles.
     /// None == blocked
     pub path_cost: Option<i32>,
@@ -36,10 +37,20 @@ impl MapTile {
 
         Self {
             t: Tile::new_with_color(idx, color),
+            bg: None,
             path_cost,
             move_weight,
             opacity,
         }
+    }
+
+    pub fn with_bg(mut self, color: &str, palette: &HashMap<String, Color>) -> Self {
+        let color = *palette
+            .get(color)
+            .unwrap_or_else(|| panic!("unknown color {color}"));
+
+        self.bg = Some(color);
+        self
     }
 
     pub fn forest_tiles(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Vec<Self> {
@@ -53,6 +64,9 @@ impl MapTile {
             Self::new("spade", "tree1", None, u8::MAX, 0.7, ts, palette),
             Self::new("spade", "tree2", None, u8::MAX, 0.7, ts, palette),
         ]
+        .into_iter()
+        .map(|c| c.with_bg("forestBG", palette))
+        .collect()
     }
 
     pub fn dungeon_tiles(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Vec<Self> {

@@ -238,6 +238,7 @@ impl<'a> State<'a> {
         };
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
+        let mut t = self.ts.tile("square").unwrap();
         let dxy = self.ui.dxy as i32;
         r.x = 0;
         r.y = 0;
@@ -252,6 +253,11 @@ impl<'a> State<'a> {
                     let p = Pos::new(x as i32, y as i32);
                     if fov.points.contains(&p) {
                         tile.t.color = light_map.apply_light_level(p, tile.t.color);
+
+                        if let Some(c) = tile.bg {
+                            t.color = light_map.apply_bg_light_level(p, c);
+                            self.ts.blit_tile(&t, r, &mut self.ui.buf)?;
+                        }
                     } else {
                         tile.t.color = light_map.c_hidden;
                     }
