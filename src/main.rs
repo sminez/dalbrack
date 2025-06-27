@@ -8,7 +8,7 @@ use dalbrack::{
     },
     player::Player,
     state::State,
-    ui::{Box, DisplayMode},
+    ui::{Box, DisplayMode, palette},
 };
 use rand::Rng;
 use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
@@ -23,7 +23,7 @@ pub fn main() -> anyhow::Result<()> {
     let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, &mut state);
 
     // This needs to be a first class thing in the UI rather than directly spawning here
-    let white = *state.palette.get("ibmWhite").unwrap();
+    let white = palette::IBM_WHITE;
     state.world.spawn((Box::new(0, H, W - 1, 4, white),));
     state.world.spawn((
         Pos::new(1, H + 1),
@@ -34,10 +34,11 @@ pub fn main() -> anyhow::Result<()> {
     state.set_map(map);
 
     state.e_player = state.world.spawn(
-        Player::new_base_bundle(pos, FovRange(30), &state)
+        Player::new_base_bundle(pos, FovRange(75), &state)
             .add(LightSource {
-                range: 28,
-                color: Color::RGB(80, 50, 20),
+                range: 12,
+                // color: Color::RGB(80, 50, 20),
+                color: Color::RGB(178, 111, 45),
             })
             .build(),
     );
@@ -106,12 +107,12 @@ pub fn map_other_events(event: &Event) -> Option<Action> {
             ..
         } => Action::from(move |state: &mut State<'_>| {
             let mut rng = rand::rng();
-            let color = *state.palette.get("fire1").unwrap();
+            let color = palette::FIRE_1;
             state.world.spawn((
                 state.ui.map_click(x, y),
                 state.tile_with_color("star", color),
                 LightSource {
-                    range: rng.random_range(5..12),
+                    range: rng.random_range(3..8),
                     color,
                 },
             ));

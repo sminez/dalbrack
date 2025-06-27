@@ -4,7 +4,7 @@
 //!   https://www.roguebasin.com/index.php/Computing_LOS_for_Large_Areas
 //!   https://www.roguebasin.com/index.php?title=Discussion:Field_of_Vision
 //!   https://www.roguebasin.com/index.php/Restrictive_Precise_Angle_Shadowcasting
-use crate::{Pos, map::Map, state::State, ui::blend};
+use crate::{Pos, map::Map, state::State, ui::ColorExt};
 use sdl2::pixels::Color;
 use std::{
     collections::{HashMap, HashSet},
@@ -18,7 +18,7 @@ const EXP_FALLOFF: f32 = 0.11;
 /// % of original color to use when blending foreground light levels
 const FG_BLEND_PERC: f32 = 0.5;
 /// % of original color to use when blending background light levels
-const BG_BLEND_PERC: f32 = 0.96;
+const BG_BLEND_PERC: f32 = 0.92;
 /// Smoothing factor added to radius to make the edge points "nicer"
 const R_SMOOTHING: f32 = 0.33;
 
@@ -137,8 +137,8 @@ impl LightMap {
             for (p, color) in lm.points.into_iter() {
                 points
                     .entry(p)
-                    .and_modify(|current| {
-                        *current = blend(*current, color, 0.5);
+                    .and_modify(|current: &mut Color| {
+                        *current = current.blend(color, 0.5);
                     })
                     .or_insert(color);
             }
@@ -190,22 +190,28 @@ impl LightMap {
         LightMap { points, c_hidden }
     }
 
+    /// Apply this light map to a foreground color at the specified map position.
+    /// If the position is not illumminated then the color is set to "hidden".
     pub fn apply_light_level(&self, p: Pos, color: Color) -> Color {
         let light_color = match self.points.get(&p) {
             Some(c) => *c,
             None => return self.c_hidden,
         };
 
-        blend(color, light_color, FG_BLEND_PERC)
+        color.blend(light_color, FG_BLEND_PERC)
     }
 
-    pub fn apply_bg_light_level(&self, p: Pos, color: Color) -> Color {
+    /// Apply this light map to a background color at the specified map position.
+    /// If the position is not illumminated then no background color is set (unlike
+    /// the behaviour for foreground colors). This will result in the default map
+    /// background color being used for the tile instead.
+    pub fn apply_bg_light_level(&self, p: Pos, color: Color) -> Option<Color> {
         let light_color = match self.points.get(&p) {
             Some(c) => *c,
-            None => return self.c_hidden,
+            None => return None,
         };
 
-        blend(color, light_color, BG_BLEND_PERC)
+        Some(color.blend(light_color, BG_BLEND_PERC))
     }
 }
 

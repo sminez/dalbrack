@@ -9,6 +9,7 @@ use crate::{
     },
     mob::{Mob, PIXIE},
     state::State,
+    ui::palette,
 };
 use hecs::Entity;
 use rand::{Rng, seq::IndexedRandom};
@@ -37,8 +38,8 @@ impl Forest {
 
 impl BuildMap for Forest {
     fn bg_and_tiles(&self, state: &State<'_>) -> (Color, Vec<MapTile>) {
-        let bg = *state.palette.get("forestBG").unwrap();
-        let tiles = MapTile::forest_tiles(&state.ts, &state.palette);
+        let bg = palette::FOREST_BG;
+        let tiles = MapTile::forest_tiles(&state.ts);
 
         (bg, tiles)
     }

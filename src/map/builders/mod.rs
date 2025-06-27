@@ -4,6 +4,7 @@ use crate::{
     grid::dijkstra_map,
     map::{Map, MapTile},
     state::State,
+    ui::palette,
 };
 use hecs::Entity;
 use sdl2::pixels::Color;
@@ -46,7 +47,7 @@ pub trait BuildMap: Send + Sync {
         };
 
         let (bg, tile_defs) = self.bg_and_tiles(state);
-        let hidden = *state.palette.get("hidden").unwrap();
+        let hidden = palette::HIDDEN;
 
         loop {
             let mut map = Map::new(map_w, map_h, tile_defs.clone(), bg, hidden);
@@ -73,7 +74,7 @@ pub trait BuildMap: Send + Sync {
         };
 
         let (bg, tile_defs) = self.bg_and_tiles(state);
-        let hidden = *state.palette.get("hidden").unwrap();
+        let hidden = palette::HIDDEN;
 
         loop {
             let mut map = Map::new(map_w, map_h, tile_defs.clone(), bg, hidden);

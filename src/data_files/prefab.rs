@@ -1,16 +1,13 @@
 use crate::{
     Grid,
     tileset::{Tile, TileSet},
+    ui::palette,
 };
 use anyhow::{Context, anyhow, bail};
 use sdl2::pixels::Color;
 use std::{collections::HashMap, fs, path::Path};
 
-pub fn parse_cp437_prefab(
-    path: impl AsRef<Path>,
-    ts: &TileSet<'_>,
-    palette: &HashMap<String, Color>,
-) -> anyhow::Result<Grid<Tile>> {
+pub fn parse_cp437_prefab(path: impl AsRef<Path>, ts: &TileSet<'_>) -> anyhow::Result<Grid<Tile>> {
     let raw = fs::read_to_string(path).context("reading prefab")?;
     let mut lines = raw.lines().peekable();
     let mut grid = Grid::default();
@@ -26,7 +23,7 @@ pub fn parse_cp437_prefab(
             Some(line) => line,
         };
         let (ch, color, ident) =
-            parse_tile_def(line, palette).ok_or_else(|| anyhow!("invalid tile def: {line:?}"))?;
+            parse_tile_def(line).ok_or_else(|| anyhow!("invalid tile def: {line:?}"))?;
         let idx = ts
             .tile_index(ident)
             .ok_or_else(|| anyhow!("unknown tile ident: {ident}"))?;
@@ -52,10 +49,7 @@ pub fn parse_cp437_prefab(
     Ok(grid)
 }
 
-fn parse_tile_def<'a>(
-    line: &'a str,
-    colors: &HashMap<String, Color>,
-) -> Option<(char, Color, &'a str)> {
+fn parse_tile_def(line: &str) -> Option<(char, Color, &str)> {
     let (char, tail) = line.split_once(' ')?;
     let (color, ident) = tail.split_once(' ')?;
 
@@ -65,7 +59,8 @@ fn parse_tile_def<'a>(
         return None;
     }
 
-    let color = *colors.get(color.trim())?;
+    let color = color.trim().strip_prefix('#')?;
+    let color = palette::from_hex(color);
 
     Some((ch, color, ident.trim()))
 }

@@ -1,6 +1,8 @@
-use crate::tileset::{Tile, TileSet};
+use crate::{
+    tileset::{Tile, TileSet},
+    ui::palette,
+};
 use sdl2::pixels::Color;
-use std::collections::HashMap;
 
 pub const WALL: usize = 0;
 pub const FLOOR: usize = 1;
@@ -23,17 +25,13 @@ pub struct MapTile {
 impl MapTile {
     pub fn new(
         ident: &str,
-        color: &str,
+        color: Color,
         path_cost: Option<i32>,
         move_weight: u8,
         opacity: f32,
         ts: &TileSet<'_>,
-        palette: &HashMap<String, Color>,
     ) -> Self {
         let idx = ts.tile_index(ident).unwrap();
-        let color = *palette
-            .get(color)
-            .unwrap_or_else(|| panic!("unknown color {color}"));
 
         Self {
             t: Tile::new_with_color(idx, color),
@@ -44,44 +42,40 @@ impl MapTile {
         }
     }
 
-    pub fn with_bg(mut self, color: &str, palette: &HashMap<String, Color>) -> Self {
-        let color = *palette
-            .get(color)
-            .unwrap_or_else(|| panic!("unknown color {color}"));
-
+    pub fn with_bg(mut self, color: Color) -> Self {
         self.bg = Some(color);
         self
     }
 
-    pub fn forest_tiles(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Vec<Self> {
+    pub fn forest_tiles(ts: &TileSet<'_>) -> Vec<Self> {
         vec![
             // default "wall"
-            Self::new("club", "tree1", None, u8::MAX, 0.6, ts, palette),
+            Self::new("club", palette::TREE_1, None, u8::MAX, 0.6, ts),
             // floor
-            Self::new("dot", "earth", Some(1), 1, 0.0, ts, palette),
+            Self::new("dot", palette::EARTH, Some(1), 1, 0.0, ts),
             // other trees
-            Self::new("club", "tree2", None, u8::MAX, 0.6, ts, palette),
-            Self::new("spade", "tree1", None, u8::MAX, 0.7, ts, palette),
-            Self::new("spade", "tree2", None, u8::MAX, 0.7, ts, palette),
+            Self::new("club", palette::TREE_2, None, u8::MAX, 0.6, ts),
+            Self::new("spade", palette::TREE_1, None, u8::MAX, 0.7, ts),
+            Self::new("spade", palette::TREE_2, None, u8::MAX, 0.7, ts),
         ]
         .into_iter()
-        .map(|c| c.with_bg("forestBG", palette))
+        .map(|c| c.with_bg(palette::FOREST_BG))
         .collect()
     }
 
-    pub fn dungeon_tiles(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Vec<Self> {
+    pub fn dungeon_tiles(ts: &TileSet<'_>) -> Vec<Self> {
         vec![
-            Self::new("shade-dark", "grey13", None, u8::MAX, 1.0, ts, palette),
-            Self::new("dot", "grey15", Some(1), 1, 0.0, ts, palette),
+            Self::new("shade-dark", palette::GREY_13, None, u8::MAX, 1.0, ts),
+            Self::new("dot", palette::GREY_15, Some(1), 1, 0.0, ts),
         ]
     }
 
-    pub fn wall(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
-        Self::new("shade-dark", "grey13", None, u8::MAX, 1.0, ts, palette)
+    pub fn wall(ts: &TileSet<'_>) -> Self {
+        Self::new("shade-dark", palette::GREY_13, None, u8::MAX, 1.0, ts)
     }
 
-    pub fn floor(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {
-        Self::new("dot", "earth", Some(1), 1, 0.0, ts, palette)
+    pub fn floor(ts: &TileSet<'_>) -> Self {
+        Self::new("dot", palette::EARTH, Some(1), 1, 0.0, ts)
     }
 
     //     pub fn door(ts: &TileSet<'_>, palette: &HashMap<String, Color>) -> Self {

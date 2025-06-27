@@ -2,7 +2,6 @@
 use crate::{
     FRAME_LEN_MS, Pos,
     action::{Action, AvailableActions},
-    data_files::parse_color_palette,
     map::{
         Map, MapSet,
         fov::{Fov, FovRange, LightMap, LightSource, Opacity},
@@ -27,7 +26,6 @@ pub struct State<'a> {
     pub mapset: MapSet,
     pub ui: Sdl2UI<'a>,
     pub ts: TileSet<'a>,
-    pub palette: HashMap<String, Color>,
     pub running: bool,
     pub action_queue: VecDeque<Action>,
     pub last_tick: Instant,
@@ -36,7 +34,6 @@ pub struct State<'a> {
 impl<'a> State<'a> {
     pub fn init(mode: DisplayMode, window_title: &str) -> anyhow::Result<Self> {
         let ts = TileSet::default();
-        let palette = parse_color_palette()?;
         let ui = Sdl2UI::init(mode, window_title)?;
         let mut world = World::new();
         let e_player = world.spawn(());
@@ -49,7 +46,6 @@ impl<'a> State<'a> {
             mapset,
             ui,
             ts,
-            palette,
             running: true,
             last_tick: Instant::now(),
             action_queue: VecDeque::new(),
@@ -144,13 +140,6 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn tile_with_named_color(&self, ident: &str, color: &str) -> Tile {
-        let mut tile = self.ts.tile(ident).unwrap();
-        tile.color = *self.palette.get(color).unwrap();
-
-        tile
-    }
-
     pub fn tile_with_color(&self, ident: &str, color: Color) -> Tile {
         let mut tile = self.ts.tile(ident).unwrap();
         tile.color = color;
@@ -196,6 +185,10 @@ impl<'a> State<'a> {
     }
 
     pub fn update_light_map(&mut self) -> anyhow::Result<()> {
+        if self.mapset.is_empty() {
+            return Ok(());
+        }
+
         let fov = match self.world.get::<&Fov>(self.e_player) {
             Ok(fov) => fov,
             Err(_) => return Ok(()),
@@ -230,6 +223,7 @@ impl<'a> State<'a> {
         if self.mapset.is_empty() {
             return Ok(()); // no map to render
         }
+
         let fov = self.world.get::<&Fov>(self.e_player).ok();
         let map = self.mapset.current_mut();
         let fov_and_light_map = match map.light_map.as_ref() {
@@ -254,8 +248,9 @@ impl<'a> State<'a> {
                     if fov.points.contains(&p) {
                         tile.t.color = light_map.apply_light_level(p, tile.t.color);
 
-                        if let Some(c) = tile.bg {
-                            t.color = light_map.apply_bg_light_level(p, c);
+                        if let Some(c) = tile.bg.and_then(|c| light_map.apply_bg_light_level(p, c))
+                        {
+                            t.color = c;
                             self.ts.blit_tile(&t, r, &mut self.ui.buf)?;
                         }
                     } else {
@@ -273,11 +268,15 @@ impl<'a> State<'a> {
     }
 
     pub fn blit_tiles(&mut self) -> anyhow::Result<()> {
-        let fov = self.world.get::<&Fov>(self.e_player).ok();
-        let map = self.mapset.current_mut();
-        let fov_and_light_map = match map.light_map.as_ref() {
-            Some(lm) => fov.map(|fov| (fov, lm)),
-            None => None,
+        let fov_and_light_map = if self.mapset.is_empty() {
+            None
+        } else {
+            let fov = self.world.get::<&Fov>(self.e_player).ok();
+            let map = self.mapset.current_mut();
+            match map.light_map.as_ref() {
+                Some(lm) => fov.map(|fov| (fov, lm)),
+                None => None,
+            }
         };
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);

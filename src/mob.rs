@@ -4,21 +4,23 @@ use crate::{
     actor::Actor,
     map::fov::{FovRange, Opacity},
     state::State,
+    ui::palette,
 };
 use hecs::{Entity, EntityBuilder};
+use sdl2::pixels::Color;
 use std::cmp::{max, min};
 
 pub struct MobSpec {
     pub name: &'static str,
     pub ident: &'static str,
-    pub color: &'static str,
+    pub color: Color,
     pub fov_range: u32,
 }
 
 pub const PIXIE: MobSpec = MobSpec {
     name: "pixie",
     ident: "p",
-    color: "fadedPurple",
+    color: palette::FADED_PURPLE,
     fov_range: 6,
 };
 
@@ -34,7 +36,7 @@ impl Mob {
                 .add(FovRange(spec.fov_range))
                 .add_bundle(Actor {
                     pos: Pos::new(x, y),
-                    tile: state.tile_with_named_color(spec.ident, spec.color),
+                    tile: state.tile_with_color(spec.ident, spec.color),
                     opacity: Opacity(0.5),
                     actions: AvailableActions::from(RandomMoveAI),
                 })

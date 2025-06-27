@@ -8,6 +8,7 @@ use crate::{
     mob::{Mob, PIXIE},
     rng::RngHandle,
     state::State,
+    ui::palette,
 };
 use hecs::Entity;
 use rand::{Rng, rngs::ThreadRng};
@@ -30,8 +31,8 @@ pub struct BspDungeon {
 
 impl BuildMap for BspDungeon {
     fn bg_and_tiles(&self, state: &State<'_>) -> (Color, Vec<MapTile>) {
-        let bg = *state.palette.get("black").unwrap();
-        let tiles = MapTile::dungeon_tiles(&state.ts, &state.palette);
+        let bg = palette::BLACK;
+        let tiles = MapTile::dungeon_tiles(&state.ts);
 
         (bg, tiles)
     }

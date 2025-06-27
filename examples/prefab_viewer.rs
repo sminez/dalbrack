@@ -50,7 +50,7 @@ pub fn main() -> anyhow::Result<()> {
 }
 
 fn update(path: &str, state: &mut State<'_>) -> anyhow::Result<()> {
-    let grid = parse_cp437_prefab(path, &state.ts, &state.palette)?;
+    let grid = parse_cp437_prefab(path, &state.ts)?;
     state.world.clear();
     grid.spawn_all_at(X, Y, &mut state.world);
 

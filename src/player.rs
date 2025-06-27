@@ -5,6 +5,7 @@ use crate::{
     actor::Actor,
     map::fov::{Fov, FovRange, Opacity},
     state::State,
+    ui::palette,
 };
 use hecs::EntityBuilder;
 
@@ -23,7 +24,7 @@ impl Player {
         let mut builder = EntityBuilder::new();
         builder.add(Player).add_bundle(Actor {
             pos,
-            tile: state.tile_with_named_color("@", "white"),
+            tile: state.tile_with_color("@", palette::WHITE),
             opacity: Opacity(0.7),
             actions: AvailableActions::default(),
         });

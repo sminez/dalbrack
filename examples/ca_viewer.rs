@@ -10,7 +10,7 @@ use dalbrack::{
     rng::RngHandle,
     state::State,
     tileset::Tile,
-    ui::{DisplayMode, blend},
+    ui::{ColorExt, DisplayMode, palette},
 };
 use notify_debouncer_full::{DebounceEventResult, new_debouncer, notify::RecursiveMode};
 use rand::Rng;
@@ -225,9 +225,9 @@ fn update_dmap(state: &mut State<'_>) -> Grid<Tile> {
     let pos = *state.world.query_one_mut::<&Pos>(state.e_player).unwrap();
     let raw = dijkstra_map(&map.tiles, &[(pos, 0)], |p| map.tile_at(p).path_cost);
 
-    let near = *state.palette.get("autumnRed").unwrap();
-    let far = *state.palette.get("waveBlue2").unwrap();
-    let hidden = *state.palette.get("hidden").unwrap();
+    let near = palette::FIRE_2;
+    let far = palette::WATER_1;
+    let hidden = palette::HIDDEN;
 
     let min = *raw.cells.iter().min().unwrap();
     let max = *raw.cells.iter().filter(|&&i| i != i32::MAX).max().unwrap() as f32;
@@ -240,7 +240,7 @@ fn update_dmap(state: &mut State<'_>) -> Grid<Tile> {
                 state.tile_with_color("square", hidden)
             } else {
                 let perc = ((*i - min) as f32) / max;
-                let color = blend(far, near, perc);
+                let color = far.blend(near, perc);
                 state.tile_with_color("square", color)
             }
         })

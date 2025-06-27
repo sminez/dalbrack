@@ -16,6 +16,7 @@ use crate::{
     },
     rng::RngHandle,
     state::State,
+    ui::palette,
 };
 use hecs::Entity;
 use sdl2::pixels::Color;
@@ -106,8 +107,8 @@ impl CellularAutomata {
 
 impl BuildMap for CellularAutomata {
     fn bg_and_tiles(&self, state: &State<'_>) -> (Color, Vec<MapTile>) {
-        let bg = *state.palette.get("black").unwrap();
-        let tiles = MapTile::dungeon_tiles(&state.ts, &state.palette);
+        let bg = palette::BLACK;
+        let tiles = MapTile::dungeon_tiles(&state.ts);
 
         (bg, tiles)
     }
