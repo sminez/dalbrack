@@ -19,6 +19,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+pub mod mode;
+pub use mode::{GameMode, LocalMap};
+
 pub struct State<'a> {
     pub rng: RngHandle,
     pub world: World,
@@ -50,6 +53,27 @@ impl<'a> State<'a> {
             last_tick: Instant::now(),
             action_queue: VecDeque::new(),
         })
+    }
+
+    pub fn run_mode<M: GameMode>(&mut self, mode: M) -> anyhow::Result<()> {
+        use sdl2::event::Event;
+
+        mode.init(self)?;
+
+        while self.running {
+            let event = self.ui.wait_event();
+            if let Event::MouseMotion { .. } = event {
+                continue;
+            }
+
+            if let Some(action) = mode.action_for_input_event(&event, self) {
+                self.action_queue.push_back(action);
+            };
+
+            self.tick()?;
+        }
+
+        Ok(())
     }
 
     pub fn tick_with(
@@ -206,6 +230,22 @@ impl<'a> State<'a> {
         }
 
         self.mapset.current_mut().light_map = Some(light_map);
+
+        Ok(())
+    }
+
+    pub fn clear_with_comp<T: hecs::Component>(&mut self) -> anyhow::Result<()> {
+        let entities: Vec<_> = self
+            .world
+            .query::<&T>()
+            .without::<&Player>()
+            .iter()
+            .map(|(e, _)| e)
+            .collect();
+
+        for entity in entities.into_iter() {
+            self.world.despawn(entity)?;
+        }
 
         Ok(())
     }

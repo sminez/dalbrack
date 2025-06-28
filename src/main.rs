@@ -1,18 +1,14 @@
 use dalbrack::{
     Pos, TITLE,
-    action::{Action, AvailableActions, toggle_explored},
-    input::map_event_in_game_state,
     map::{
         builders::{BuildConfig, BuildMap, Forest},
         fov::{FovRange, LightSource},
     },
     player::Player,
-    state::State,
-    tileset::TileSet,
+    state::{LocalMap, State},
     ui::{Box, DisplayMode, palette},
 };
-use rand::Rng;
-use sdl2::{event::Event, keyboard::Keycode, mouse::MouseButton, pixels::Color};
+use sdl2::pixels::Color;
 
 const W: i32 = 60;
 const SCREEN_H: i32 = 40;
@@ -45,144 +41,7 @@ pub fn main() -> anyhow::Result<()> {
             .build(),
     );
 
-    state.update_fov()?;
-    state.update_light_map()?;
-    state.update_ui()?;
-
-    while state.running {
-        let event = state.ui.wait_event();
-        if let Event::MouseMotion { .. } = event {
-            continue;
-        }
-
-        match event {
-            Event::KeyDown {
-                keycode: Some(k),
-                repeat: false,
-                ..
-            } => {
-                let mut render = true;
-                match k {
-                    Keycode::Num1 => state.ts = TileSet::df_classic()?,
-                    Keycode::Num2 => state.ts = TileSet::df_sb()?,
-                    Keycode::Num3 => state.ts = TileSet::df_cga()?,
-                    Keycode::Num4 => state.ts = TileSet::df_potash()?,
-                    Keycode::Num5 => state.ts = TileSet::df_acorn()?,
-                    Keycode::Num6 => state.ts = TileSet::df_rde()?,
-
-                    _ => render = false,
-                }
-                if render {
-                    state.update_ui()?;
-                }
-            }
-
-            Event::MouseMotion { .. } => {
-                continue;
-            }
-
-            _ => (),
-        }
-
-        match map_event_in_game_state(&event, &state) {
-            Some(action) => state.action_queue.push_back(action),
-            None => {
-                if let Some(action) = map_other_events(&event) {
-                    state.action_queue.push_back(action);
-                }
-            }
-        }
-
-        state.tick()?;
-    }
-
-    Ok(())
-}
-
-pub fn map_other_events(event: &Event) -> Option<Action> {
-    let action = match *event {
-        Event::KeyDown {
-            keycode: Some(k),
-            repeat: false,
-            ..
-        } => match k {
-            Keycode::Space => toggle_explored.into(),
-
-            Keycode::C => {
-                Action::from(move |state: &mut State<'_>| clear_with_comp::<LightSource>(state))
-            }
-
-            Keycode::R => Action::from(move |state: &mut State<'_>| {
-                clear_with_comp::<LightSource>(state)?;
-                clear_with_comp::<AvailableActions>(state)?;
-
-                let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, state);
-                state.set_map(map);
-                Player::warp(pos, state);
-
-                state.update_fov()?;
-                state.update_light_map()?;
-                state.update_ui()?;
-
-                Ok(())
-            }),
-
-            _ => return None,
-        },
-
-        // Left click to place random light
-        Event::MouseButtonDown {
-            mouse_btn: MouseButton::Left,
-            x,
-            y,
-            ..
-        } => Action::from(move |state: &mut State<'_>| {
-            let mut rng = rand::rng();
-            let color = palette::FIRE_1;
-            state.world.spawn((
-                state.ui.map_click(x, y),
-                state.tile_with_color("star", color),
-                LightSource {
-                    range: rng.random_range(3..8),
-                    color,
-                },
-            ));
-
-            Ok(())
-        }),
-
-        // Middle click to flip between floor and wall
-        Event::MouseButtonDown {
-            mouse_btn: MouseButton::Middle,
-            x,
-            y,
-            ..
-        } => Action::from(move |state: &mut State<'_>| {
-            let pos = state.ui.map_click(x, y);
-            let map = state.mapset.current_mut();
-            map.tiles[pos] = if map.tiles[pos] == 0 { 1 } else { 0 };
-
-            Ok(())
-        }),
-
-        _ => return None,
-    };
-
-    Some(action)
-}
-
-fn clear_with_comp<T: hecs::Component>(state: &mut State<'_>) -> anyhow::Result<()> {
-    let entities: Vec<_> = state
-        .world
-        .query::<&T>()
-        .without::<&Player>()
-        .iter()
-        .map(|(e, _)| e)
-        .collect();
-
-    for entity in entities.into_iter() {
-        state.world.despawn(entity)?;
-    }
+    state.run_mode(LocalMap)?;
 
     Ok(())
 }
