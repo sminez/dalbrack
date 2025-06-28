@@ -57,7 +57,7 @@ impl<'a> Sdl2UI<'a> {
 
                 let canvas = win.into_canvas().target_texture().present_vsync().build()?;
 
-                (canvas, LOGICAL_W, LOGICAL_H, dxy)
+                (canvas, LOGICAL_W * dxy, LOGICAL_H * dxy, dxy)
             }
 
             DisplayMode::Fixed(w, h, dxy) => {
@@ -103,15 +103,13 @@ impl<'a> Sdl2UI<'a> {
     fn handle_resize(&mut self, event: Event) -> Option<Event> {
         match event {
             Event::Window {
-                win_event: WindowEvent::SizeChanged(w, h) | WindowEvent::Resized(w, h),
+                win_event: WindowEvent::SizeChanged(w, _) | WindowEvent::Resized(w, _),
                 ..
             } => {
-                self.w = w as u32;
-                self.h = h as u32;
-                self.dxy = self.h / LOGICAL_H;
-                let offset = (h as u32 - LOGICAL_H * self.dxy) as i32;
+                let offset = (w as u32 - LOGICAL_W * self.dxy) as i32 / 2;
                 self.target = Some(Rect::new(offset, 0, self.w, self.h));
-                self.buf = Surface::new(w as u32, h as u32, PixelFormatEnum::ARGB8888).unwrap();
+                self.clear();
+                _ = self.render();
 
                 None
             }
