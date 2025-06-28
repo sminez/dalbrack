@@ -21,6 +21,7 @@ const CFG: BuildConfig = BuildConfig { populated: true };
 
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DisplayMode::FullScreen, TITLE)?;
+    // let mut state = State::init(DisplayMode::Fixed(W as u32, SCREEN_H as u32, 16), TITLE)?;
     let (pos, map) = Forest::default().new_map(W as usize, H as usize, CFG, &mut state);
 
     // This needs to be a first class thing in the UI rather than directly spawning here

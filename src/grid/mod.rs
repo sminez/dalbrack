@@ -22,7 +22,7 @@ const NEIGHBOURS: [(i32, i32); 8] = [
 ];
 
 /// A cell position within a [Grid]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos {
     pub x: i32,
     pub y: i32,
