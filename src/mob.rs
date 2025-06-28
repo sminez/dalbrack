@@ -19,7 +19,7 @@ pub struct MobSpec {
 
 pub const PIXIE: MobSpec = MobSpec {
     name: "pixie",
-    ident: "p",
+    ident: "pi",
     color: palette::FADED_PURPLE,
     fov_range: 6,
 };

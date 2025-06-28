@@ -3,6 +3,10 @@
 - !! Sort out only rendering entities that are on the current map
   -> Probably now is a good time to sort out the blitting ordering as well
 
+- !! Decouple the UI rendering thread from game ticks
+  -> Move over to a double buffer and have the UI just render the state that it has in the
+     active buffer
+
 - assign weights to actions and may a weighted choice rather than just first returned
 - FollowPath needs to be able to stop if the actor has encountered new information that
   should cause it to update its behaviour
@@ -17,7 +21,6 @@
 - maybe try allowing more permissive illumination if the light source is between the player
   and the object it is hitting?
   - This would need to be done while building the map at the source level
-- update colors for actors and items based on the light map as well as map tiles
 
 ### Blitting
 The current behaviour just looks for:

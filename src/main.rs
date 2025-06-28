@@ -8,6 +8,7 @@ use dalbrack::{
     },
     player::Player,
     state::State,
+    tileset::TileSet,
     ui::{Box, DisplayMode, palette},
 };
 use rand::Rng;
@@ -51,6 +52,35 @@ pub fn main() -> anyhow::Result<()> {
         let event = state.ui.wait_event();
         if let Event::MouseMotion { .. } = event {
             continue;
+        }
+
+        match event {
+            Event::KeyDown {
+                keycode: Some(k),
+                repeat: false,
+                ..
+            } => {
+                let mut render = true;
+                match k {
+                    Keycode::Num1 => state.ts = TileSet::df_classic()?,
+                    Keycode::Num2 => state.ts = TileSet::df_sb()?,
+                    Keycode::Num3 => state.ts = TileSet::df_cga()?,
+                    Keycode::Num4 => state.ts = TileSet::df_potash()?,
+                    Keycode::Num5 => state.ts = TileSet::df_acorn()?,
+                    Keycode::Num6 => state.ts = TileSet::df_rde()?,
+
+                    _ => render = false,
+                }
+                if render {
+                    state.update_ui()?;
+                }
+            }
+
+            Event::MouseMotion { .. } => {
+                continue;
+            }
+
+            _ => (),
         }
 
         match map_event_in_game_state(&event, &state) {

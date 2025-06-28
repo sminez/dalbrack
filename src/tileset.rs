@@ -50,6 +50,26 @@ impl<'a> TileSet<'a> {
         )
     }
 
+    pub fn df_cga() -> anyhow::Result<Self> {
+        parse_cp437_tileset("data/tilesets/df/CGA8x8thin.png", 8, Some(Color::MAGENTA))
+    }
+
+    pub fn df_potash() -> anyhow::Result<Self> {
+        parse_cp437_tileset(
+            "data/tilesets/df/Potash_10x10.png",
+            10,
+            Some(Color::MAGENTA),
+        )
+    }
+
+    pub fn df_acorn() -> anyhow::Result<Self> {
+        parse_cp437_tileset(
+            "data/tilesets/df/Acorntileset8x8.png",
+            8,
+            Some(Color::MAGENTA),
+        )
+    }
+
     pub fn df_buddy() -> anyhow::Result<Self> {
         parse_cp437_tileset("data/tilesets/df/Buddy.png", 10, None)
     }
