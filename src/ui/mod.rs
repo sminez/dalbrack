@@ -175,3 +175,13 @@ impl Box {
         }
     }
 }
+
+/// A temporary UI string pinned to a given map position
+#[derive(Debug)]
+pub struct Bork {
+    pub pos: Pos,
+    pub msg: String,
+    pub fg: Color,
+    pub bg: Color,
+    pub from_tick: usize,
+}

@@ -185,8 +185,10 @@ impl ActionProvider for SnootAI {
                 let current = pos.fdist(*p);
                 for p in map.neighbouring_tiles(pos) {
                     let dist = p.fdist(player_pos);
-                    if map.tile_at(p).path_cost.is_some() && dist > current {
+
+                    if map.tile_at(p).path_cost.is_some() && dist < current {
                         return Some(vec![Action::from(move |state: &mut State<'_>| {
+                            state.bork(p, "woof!");
                             *state.world.query_one_mut::<&mut Pos>(entity)? = p;
 
                             Ok(())

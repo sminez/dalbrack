@@ -8,7 +8,7 @@ use crate::{
     },
     player::Player,
     state::State,
-    ui::palette,
+    ui::{MAP_H, MAP_W, palette},
 };
 use rand::Rng;
 use sdl2::{
@@ -107,7 +107,12 @@ impl GameMode for LocalMap {
                     state.clear_with_comp::<LightSource>()?;
                     state.clear_with_comp::<AvailableActions>()?;
 
-                    let (pos, map) = Forest::default().new_map(60, 35, Default::default(), state);
+                    let (pos, map) = Forest::default().new_map(
+                        MAP_W as usize,
+                        MAP_H as usize,
+                        Default::default(),
+                        state,
+                    );
                     state.set_map(map);
                     Player::warp(pos, state);
 

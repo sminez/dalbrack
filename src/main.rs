@@ -1,7 +1,7 @@
 use dalbrack::{
     TITLE,
     map::{
-        builders::{BuildConfig, BuildMap, Forest},
+        builders::{BuildMap, Forest},
         fov::{FovRange, LightSource},
     },
     player::Player,
@@ -10,13 +10,16 @@ use dalbrack::{
 };
 use sdl2::pixels::Color;
 
-const CFG: BuildConfig = BuildConfig { populated: true };
-
 pub fn main() -> anyhow::Result<()> {
     let mut state = State::init(DisplayMode::FullScreen, TITLE)?;
     // let mut state = State::init(DisplayMode::Fixed(W as u32, SCREEN_H as u32, 16), TITLE)?;
 
-    let (pos, map) = Forest::default().new_map(MAP_W as usize, MAP_H as usize, CFG, &mut state);
+    let (pos, map) = Forest::default().new_map(
+        MAP_W as usize,
+        MAP_H as usize,
+        Default::default(),
+        &mut state,
+    );
     state.set_map(map);
     state.log("You enter the woods of Dalbrack, in search of the Snoot");
     state.log("Where could it be?...");

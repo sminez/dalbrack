@@ -9,7 +9,7 @@ use crate::{
     player::Player,
     rng::RngHandle,
     tileset::{Tile, TileSet},
-    ui::{Box, DisplayMode, LOGICAL_W, MAP_H, Sdl2UI, UI_H, palette},
+    ui::{Bork, Box, DisplayMode, LOGICAL_W, MAP_H, Sdl2UI, UI_H, palette},
 };
 use hecs::{Entity, World};
 use sdl2::{event::WindowEvent, pixels::Color, rect::Rect};
@@ -32,7 +32,8 @@ pub struct State<'a> {
     pub running: bool,
     pub action_queue: VecDeque<Action>,
     pub log: Vec<String>,
-    pub last_tick: Instant,
+    pub t_last_frame: Instant,
+    pub tick: usize,
 }
 
 impl<'a> State<'a> {
@@ -53,7 +54,8 @@ impl<'a> State<'a> {
             running: true,
             action_queue: VecDeque::new(),
             log: Vec::new(),
-            last_tick: Instant::now(),
+            t_last_frame: Instant::now(),
+            tick: 0,
         })
     }
 
@@ -93,10 +95,32 @@ impl<'a> State<'a> {
         self.log.push(msg.into());
     }
 
+    pub fn bork(&mut self, mut pos: Pos, msg: impl Into<String>) -> Entity {
+        if pos.y == 0 {
+            pos.y = 2;
+        } else {
+            pos.y -= 1;
+        }
+        if pos.x == 0 {
+            pos.x = 2;
+        } else {
+            pos.x -= 1;
+        }
+
+        self.world.spawn((Bork {
+            pos,
+            msg: msg.into(),
+            fg: palette::IBM_WHITE,
+            bg: palette::FOREST_BG,
+            from_tick: self.tick,
+        },))
+    }
+
     pub fn tick_with<M: GameMode>(&mut self, mode: &M) -> anyhow::Result<()> {
         let mut rendered = false;
 
         while let Some(action) = self.action_queue.pop_front() {
+            self.tick += 1;
             action.run(self)?;
             mode.after_action(self)?;
             self.wait_for_frame();
@@ -105,6 +129,7 @@ impl<'a> State<'a> {
         }
 
         while let Some(action) = self.next_player_action() {
+            self.tick += 1;
             action.run(self)?;
             self.run_actor_actions()?;
             mode.after_action(self)?;
@@ -153,18 +178,18 @@ impl<'a> State<'a> {
 
     fn need_frame(&self) -> bool {
         let t_now = Instant::now();
-        let delta = t_now.duration_since(self.last_tick).as_millis() as u64;
+        let delta = t_now.duration_since(self.t_last_frame).as_millis() as u64;
         delta >= FRAME_LEN_MS
     }
 
     fn wait_for_frame(&mut self) {
         let t_now = Instant::now();
-        let delta = t_now.duration_since(self.last_tick).as_millis() as u64;
+        let delta = t_now.duration_since(self.t_last_frame).as_millis() as u64;
         if delta < FRAME_LEN_MS {
             sleep(Duration::from_millis(FRAME_LEN_MS - delta));
         }
 
-        self.last_tick = Instant::now();
+        self.t_last_frame = Instant::now();
     }
 
     pub fn update_ui(&mut self) -> anyhow::Result<()> {
@@ -322,9 +347,11 @@ impl<'a> State<'a> {
     pub fn blit_ui(&mut self) -> anyhow::Result<()> {
         let white = palette::IBM_WHITE;
 
+        // Outline for the recent message log
         let b = Box::new(0, MAP_H, LOGICAL_W - 1, UI_H - 1, white);
         self.ts.blit_box(&b, self.ui.dxy, &mut self.ui.buf)?;
 
+        // Current log
         let to_skip = self.log.len().saturating_sub(UI_H as usize - 2);
         for (i, s) in self.log.iter().skip(to_skip).enumerate() {
             self.ts.blit_text(
@@ -334,6 +361,20 @@ impl<'a> State<'a> {
                 self.ui.dxy,
                 &mut self.ui.buf,
             )?;
+        }
+
+        // Barks
+        let mut to_remove = Vec::new();
+        for (e, bork) in self.world.query::<&mut Bork>().iter() {
+            if self.tick - bork.from_tick >= 1 {
+                to_remove.push(e);
+                continue;
+            }
+            self.ts.blit_bork(bork, self.ui.dxy, &mut self.ui.buf)?;
+        }
+
+        for entity in to_remove.into_iter() {
+            self.world.despawn(entity)?;
         }
 
         Ok(())

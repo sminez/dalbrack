@@ -1,7 +1,7 @@
 use crate::{
     Grid, Pos,
     data_files::{parse_cp437_tileset, parse_tile_map},
-    ui::Box,
+    ui::{Bork, Box},
 };
 use anyhow::anyhow;
 use hecs::World;
@@ -251,6 +251,33 @@ impl<'a> TileSet<'a> {
                 let tile = self.tile_with_color("box-vv", color).unwrap();
                 self.blit_tile(&tile, r, dest)?;
             }
+        }
+
+        Ok(())
+    }
+
+    pub fn blit_bork(
+        &mut self,
+        Bork {
+            pos, msg, fg, bg, ..
+        }: &Bork,
+        dxy: u32,
+        dest: &mut Surface,
+    ) -> anyhow::Result<()> {
+        let tdxy = 2 * dxy / 3;
+        let dxy = dxy as i32;
+
+        let mut r = Rect::new(pos.x * dxy, pos.y * dxy, tdxy, tdxy);
+        let mut buf = [0; 4];
+
+        for ch in msg.chars() {
+            let t = self.tile_with_color("square", *bg).unwrap();
+            self.blit_tile(&t, r, dest)?;
+
+            let ident = ch.encode_utf8(&mut buf);
+            let tile = self.tile_with_color(ident, *fg).unwrap();
+            self.blit_tile(&tile, r, dest)?;
+            r.x += tdxy as i32;
         }
 
         Ok(())
