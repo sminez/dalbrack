@@ -25,7 +25,12 @@ pub fn main() -> anyhow::Result<()> {
     state.world.spawn((Box::new(0, H, W - 1, 4, white),));
     state.world.spawn((
         Pos::new(1, H + 1),
-        String::from("You enter the woods of Dalbrack"),
+        String::from("You enter the woods of Dalbrack in search of the snoot"),
+        white,
+    ));
+    state.world.spawn((
+        Pos::new(1, H + 2),
+        String::from("Where did it get to?..."),
         white,
     ));
 

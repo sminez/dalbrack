@@ -7,7 +7,7 @@ use crate::{
             cellular_automata::{FILLED, StartingPosition},
         },
     },
-    mob::{Mob, PIXIE},
+    mob::{Mob, PIXIE, SNOOT},
     state::State,
     ui::palette,
 };
@@ -19,6 +19,7 @@ use sdl2::pixels::Color;
 /// the trees.
 pub struct Forest {
     ca: CellularAutomata,
+    p: Pos,
 }
 
 impl Default for Forest {
@@ -32,7 +33,10 @@ impl Forest {
         let mut ca = CellularAutomata::walled_cities();
         ca.start_pos = StartingPosition::South;
 
-        Self { ca }
+        Self {
+            ca,
+            p: Pos::new(0, 0),
+        }
     }
 }
 
@@ -55,6 +59,7 @@ impl BuildMap for Forest {
         snapshots: &mut Snapshots,
     ) -> Option<(Pos, Map)> {
         let (pos, mut map) = self.ca.build(map, state, snapshots)?;
+        self.p = pos;
 
         // randomise trees
         for tile in map.tiles.cells.iter_mut() {
@@ -67,13 +72,26 @@ impl BuildMap for Forest {
     }
 
     fn populate(&mut self, state: &mut State<'_>) -> Vec<Entity> {
-        self.ca
+        let mut entities: Vec<_> = self
+            .ca
             .regions
             .iter()
             .map(|r| {
                 let p = r[state.rng.random_range(0..r.len())];
                 Mob::spawn_spec(PIXIE, p.x, p.y, state)
             })
-            .collect()
+            .collect();
+
+        let p = self
+            .ca
+            .regions
+            .iter()
+            .map(|r| r[state.rng.random_range(0..r.len())])
+            .max_by(|a, b| a.fdist(self.p).total_cmp(&b.fdist(self.p)))
+            .unwrap();
+
+        entities.push(Mob::spawn_spec(SNOOT, p.x, p.y, state));
+
+        entities
     }
 }
