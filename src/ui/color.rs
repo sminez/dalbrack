@@ -62,6 +62,20 @@ pub trait ColorExt: Sized {
         )
     }
 
+    fn darken(&self, perc: f32) -> Self {
+        let (h, s, mut v) = self.to_hsv();
+        v *= perc.clamp(0.0, 1.0);
+
+        Self::from_hsv(h, s, v)
+    }
+
+    fn desaturate(&self, perc: f32) -> Self {
+        let (h, mut s, v) = self.to_hsv();
+        s *= perc.clamp(0.0, 1.0);
+
+        Self::from_hsv(h, s, v)
+    }
+
     fn to_cmyk(&self) -> (f32, f32, f32, f32) {
         let (r, g, b, _) = self.rgba();
 
@@ -89,5 +103,61 @@ pub trait ColorExt: Sized {
         b = (1.0 - b) * 255.0 + 0.5;
 
         Self::from_rgb(r as u8, g as u8, b as u8)
+    }
+
+    fn to_hsv(&self) -> (f32, f32, f32) {
+        let (r, g, b, _) = self.rgba();
+        let r = r as f32 / 255.0;
+        let g = g as f32 / 255.0;
+        let b = b as f32 / 255.0;
+
+        let max = r.max(g.max(b));
+        let min = r.min(g.min(b));
+
+        let mut h: f32 = max;
+        let v: f32 = max;
+
+        let d = max - min;
+        let s = if max == 0.0 { 0.0 } else { d / max };
+
+        if (max - min).abs() < f32::EPSILON {
+            h = 0.0; // Achromatic
+        } else {
+            if (max - r).abs() < f32::EPSILON {
+                if g < b {
+                    h = (g - b) / d + 6.0;
+                } else {
+                    h = (g - b) / d;
+                }
+            } else if (max - g).abs() < f32::EPSILON {
+                h = (b - r) / d + 2.0;
+            } else if (max - b).abs() < f32::EPSILON {
+                h = (r - g) / d + 4.0;
+            }
+
+            h /= 6.0;
+        }
+
+        (h, s, v)
+    }
+
+    fn from_hsv(h: f32, s: f32, v: f32) -> Self {
+        let i = (h * 6.0).floor() as i32;
+        let f = h * 6.0 - i as f32;
+        let p = v * (1.0 - s);
+        let q = v * (1.0 - f * s);
+        let t = v * (1.0 - (1.0 - f) * s);
+
+        let (r, g, b) = match i % 6 {
+            0 => (v, t, p),
+            1 => (q, v, p),
+            2 => (p, v, t),
+            3 => (p, q, v),
+            4 => (t, p, v),
+            5 => (v, p, q),
+            _ => unreachable!(),
+        };
+
+        Self::from_rgb((255.0 * r) as u8, (255.0 * g) as u8, (255.0 * b) as u8)
     }
 }
