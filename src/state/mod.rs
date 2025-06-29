@@ -9,10 +9,10 @@ use crate::{
     player::Player,
     rng::RngHandle,
     tileset::{Tile, TileSet},
-    ui::{Box, DisplayMode, Sdl2UI},
+    ui::{Box, DisplayMode, LOGICAL_W, MAP_H, Sdl2UI, UI_H, palette},
 };
 use hecs::{Entity, World};
-use sdl2::{pixels::Color, rect::Rect};
+use sdl2::{event::WindowEvent, pixels::Color, rect::Rect};
 use std::{
     collections::{HashMap, VecDeque},
     thread::sleep,
@@ -31,6 +31,7 @@ pub struct State<'a> {
     pub ts: TileSet<'a>,
     pub running: bool,
     pub action_queue: VecDeque<Action>,
+    pub log: Vec<String>,
     pub last_tick: Instant,
 }
 
@@ -50,8 +51,9 @@ impl<'a> State<'a> {
             ui,
             ts,
             running: true,
-            last_tick: Instant::now(),
             action_queue: VecDeque::new(),
+            log: Vec::new(),
+            last_tick: Instant::now(),
         })
     }
 
@@ -62,59 +64,68 @@ impl<'a> State<'a> {
 
         while self.running {
             let event = self.ui.wait_event();
-            if let Event::MouseMotion { .. } = event {
-                continue;
+            match event {
+                Event::Window {
+                    win_event: WindowEvent::SizeChanged(w, h) | WindowEvent::Resized(w, h),
+                    ..
+                } => {
+                    self.ui.resize(w as u32, h as u32);
+                    self.update_ui()?;
+                    continue;
+                }
+
+                Event::MouseMotion { .. } => continue,
+
+                _ => (),
             }
 
             if let Some(action) = mode.action_for_input_event(&event, self) {
                 self.action_queue.push_back(action);
             };
 
-            self.tick()?;
+            self.tick_with(&mode)?;
         }
 
         Ok(())
     }
 
-    pub fn tick_with(
-        &mut self,
-        update_fn: impl Fn(&mut Self) -> anyhow::Result<()>,
-    ) -> anyhow::Result<()> {
+    pub fn log(&mut self, msg: impl Into<String>) {
+        self.log.push(msg.into());
+    }
+
+    pub fn tick_with<M: GameMode>(&mut self, mode: &M) -> anyhow::Result<()> {
         let mut rendered = false;
 
         while let Some(action) = self.action_queue.pop_front() {
             action.run(self)?;
-
-            self.update_fov()?;
-            self.update_light_map()?;
-
+            mode.after_action(self)?;
             self.wait_for_frame();
-            (update_fn)(self)?;
+            mode.update_ui(self)?;
             rendered = true;
         }
 
         while let Some(action) = self.next_player_action() {
             action.run(self)?;
             self.run_actor_actions()?;
-
-            self.update_fov()?;
-            self.update_light_map()?;
-
+            mode.after_action(self)?;
             self.wait_for_frame();
-            (update_fn)(self)?;
+            mode.update_ui(self)?;
             rendered = true;
         }
 
         if !rendered && self.need_frame() {
             self.wait_for_frame();
-            (update_fn)(self)?;
+            mode.update_ui(self)?;
         }
 
         Ok(())
     }
 
-    pub fn tick(&mut self) -> anyhow::Result<()> {
-        self.tick_with(Self::update_ui)
+    pub fn tick_with_fn(
+        &mut self,
+        f: impl Fn(&mut State<'_>) -> anyhow::Result<()>,
+    ) -> anyhow::Result<()> {
+        self.tick_with(&f)
     }
 
     fn next_player_action(&self) -> Option<Action> {
@@ -252,6 +263,7 @@ impl<'a> State<'a> {
 
     pub fn blit_all(&mut self) -> anyhow::Result<()> {
         self.blit_map()?;
+        self.blit_ui()?;
         self.blit_tiles()?;
         self.blit_boxes()?;
         self.blit_text()?;
@@ -307,6 +319,26 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    pub fn blit_ui(&mut self) -> anyhow::Result<()> {
+        let white = palette::IBM_WHITE;
+
+        let b = Box::new(0, MAP_H, LOGICAL_W - 1, UI_H - 1, white);
+        self.ts.blit_box(&b, self.ui.dxy, &mut self.ui.buf)?;
+
+        let to_skip = self.log.len().saturating_sub(UI_H as usize - 2);
+        for (i, s) in self.log.iter().skip(to_skip).enumerate() {
+            self.ts.blit_text(
+                Pos::new(1, MAP_H as i32 + i as i32 + 1),
+                s,
+                white,
+                self.ui.dxy,
+                &mut self.ui.buf,
+            )?;
+        }
+
+        Ok(())
+    }
+
     pub fn blit_tiles(&mut self) -> anyhow::Result<()> {
         let fov_and_light_map = if self.mapset.is_empty() {
             None
@@ -340,62 +372,17 @@ impl<'a> State<'a> {
     }
 
     pub fn blit_boxes(&mut self) -> anyhow::Result<()> {
-        let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
-        let dxy = self.ui.dxy as i32;
-
-        for (_entity, &Box { x, y, w, h, color }) in self.world.query_mut::<&Box>() {
-            let corners = [
-                (x, y, "box-ddrr"),
-                (x + w, y, "box-ddll"),
-                (x, y + h, "box-uurr"),
-                (x + w, y + h, "box-uull"),
-            ];
-
-            for (dx, dy, ident) in corners {
-                r.x = dx * dxy;
-                r.y = dy * dxy;
-                let tile = self.ts.tile_with_color(ident, color).unwrap();
-                self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
-            }
-
-            for i in 1..w {
-                for y in [y, y + h] {
-                    r.x = (x + i) * dxy;
-                    r.y = y * dxy;
-                    let tile = self.ts.tile_with_color("box-hh", color).unwrap();
-                    self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
-                }
-            }
-
-            for i in 1..h {
-                for x in [x, x + w] {
-                    r.x = x * dxy;
-                    r.y = (y + i) * dxy;
-                    let tile = self.ts.tile_with_color("box-vv", color).unwrap();
-                    self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
-                }
-            }
+        for (_entity, b) in self.world.query::<&Box>().iter() {
+            self.ts.blit_box(b, self.ui.dxy, &mut self.ui.buf)?;
         }
 
         Ok(())
     }
 
     pub fn blit_text(&mut self) -> anyhow::Result<()> {
-        let tdxy = 2 * self.ui.dxy / 3;
-        let mut r = Rect::new(0, 0, tdxy, tdxy);
-        let dxy = self.ui.dxy as i32;
-
-        let mut buf = [0; 4];
         for (_entity, (pos, s, color)) in self.world.query_mut::<(&Pos, &String, &Color)>() {
-            r.x = pos.x * dxy;
-            r.y = pos.y * dxy;
-
-            for ch in s.chars() {
-                let ident = ch.encode_utf8(&mut buf);
-                let tile = self.ts.tile_with_color(ident, *color).unwrap();
-                self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
-                r.x += tdxy as i32;
-            }
+            self.ts
+                .blit_text(*pos, s, *color, self.ui.dxy, &mut self.ui.buf)?;
         }
 
         Ok(())

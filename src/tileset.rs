@@ -1,6 +1,7 @@
 use crate::{
     Grid, Pos,
     data_files::{parse_cp437_tileset, parse_tile_map},
+    ui::Box,
 };
 use anyhow::anyhow;
 use hecs::World;
@@ -206,6 +207,74 @@ impl<'a> TileSet<'a> {
             }
             r.x = x;
             r.y += dxy as i32;
+        }
+
+        Ok(())
+    }
+
+    pub fn blit_box(
+        &mut self,
+        &Box { x, y, w, h, color }: &Box,
+        dxy: u32,
+        dest: &mut Surface,
+    ) -> anyhow::Result<()> {
+        let mut r = Rect::new(0, 0, dxy, dxy);
+        let dxy = dxy as i32;
+
+        let corners = [
+            (x, y, "box-ddrr"),
+            (x + w, y, "box-ddll"),
+            (x, y + h, "box-uurr"),
+            (x + w, y + h, "box-uull"),
+        ];
+
+        for (dx, dy, ident) in corners {
+            r.x = dx * dxy;
+            r.y = dy * dxy;
+            let tile = self.tile_with_color(ident, color).unwrap();
+            self.blit_tile(&tile, r, dest)?;
+        }
+
+        for i in 1..w {
+            for y in [y, y + h] {
+                r.x = (x + i) * dxy;
+                r.y = y * dxy;
+                let tile = self.tile_with_color("box-hh", color).unwrap();
+                self.blit_tile(&tile, r, dest)?;
+            }
+        }
+
+        for i in 1..h {
+            for x in [x, x + w] {
+                r.x = x * dxy;
+                r.y = (y + i) * dxy;
+                let tile = self.tile_with_color("box-vv", color).unwrap();
+                self.blit_tile(&tile, r, dest)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn blit_text(
+        &mut self,
+        pos: Pos,
+        s: &str,
+        color: Color,
+        dxy: u32,
+        dest: &mut Surface,
+    ) -> anyhow::Result<()> {
+        let tdxy = 2 * dxy / 3;
+        let dxy = dxy as i32;
+
+        let mut r = Rect::new(pos.x * dxy, pos.y * dxy, tdxy, tdxy);
+        let mut buf = [0; 4];
+
+        for ch in s.chars() {
+            let ident = ch.encode_utf8(&mut buf);
+            let tile = self.tile_with_color(ident, color).unwrap();
+            self.blit_tile(&tile, r, dest)?;
+            r.x += tdxy as i32;
         }
 
         Ok(())

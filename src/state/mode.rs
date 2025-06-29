@@ -18,9 +18,40 @@ use sdl2::{
 };
 
 pub trait GameMode {
+    /// Run to initialise the game state before dropping into processing actions
     fn init(&self, state: &mut State<'_>) -> anyhow::Result<()>;
 
+    /// Called after each queued action or player action before updating the UI
+    fn after_action(&self, state: &mut State<'_>) -> anyhow::Result<()>;
+
+    /// Called to update the UI and render
+    fn update_ui(&self, state: &mut State<'_>) -> anyhow::Result<()>;
+
+    /// Called per input event to obtain the next game action
     fn action_for_input_event(&self, event: &Event, state: &State<'_>) -> Option<Action>;
+}
+
+// Allow closures to be used as simple UI update functions that don't have any additional handling
+// for actions
+impl<F> GameMode for F
+where
+    F: Fn(&mut State<'_>) -> anyhow::Result<()>,
+{
+    fn init(&self, _: &mut State<'_>) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn after_action(&self, _: &mut State<'_>) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn update_ui(&self, state: &mut State<'_>) -> anyhow::Result<()> {
+        (self)(state)
+    }
+
+    fn action_for_input_event(&self, _: &Event, _: &State<'_>) -> Option<Action> {
+        None
+    }
 }
 
 /// The main game screen where the player controls their character on a local map of the area
@@ -29,6 +60,15 @@ impl GameMode for LocalMap {
     fn init(&self, state: &mut State<'_>) -> anyhow::Result<()> {
         state.update_fov()?;
         state.update_light_map()?;
+        state.update_ui()
+    }
+
+    fn after_action(&self, state: &mut State<'_>) -> anyhow::Result<()> {
+        state.update_fov()?;
+        state.update_light_map()
+    }
+
+    fn update_ui(&self, state: &mut State<'_>) -> anyhow::Result<()> {
         state.update_ui()
     }
 

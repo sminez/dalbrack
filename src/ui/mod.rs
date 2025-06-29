@@ -2,7 +2,7 @@ use crate::Pos;
 use anyhow::anyhow;
 use sdl2::{
     EventPump, Sdl, VideoSubsystem,
-    event::{Event, WindowEvent},
+    event::Event,
     pixels::{Color, PixelFormatEnum},
     rect::Rect,
     render::{Canvas, TextureCreator},
@@ -14,8 +14,11 @@ mod color;
 
 pub use color::{ColorExt, palette};
 
-const LOGICAL_W: u32 = 60;
-const LOGICAL_H: u32 = 40;
+pub const LOGICAL_W: u32 = 75;
+pub const LOGICAL_H: u32 = 50;
+pub const UI_H: u32 = 6;
+pub const MAP_W: u32 = LOGICAL_W;
+pub const MAP_H: u32 = LOGICAL_H - UI_H;
 
 pub enum DisplayMode {
     Fixed(u32, u32, u32),
@@ -100,22 +103,13 @@ impl<'a> Sdl2UI<'a> {
         self.bg = color;
     }
 
-    fn handle_resize(&mut self, event: Event) -> Option<Event> {
-        match event {
-            Event::Window {
-                win_event: WindowEvent::SizeChanged(w, _) | WindowEvent::Resized(w, _),
-                ..
-            } => {
-                let offset = (w as u32 - LOGICAL_W * self.dxy) as i32 / 2;
-                self.target = Some(Rect::new(offset, 0, self.w, self.h));
-                self.clear();
-                _ = self.render();
-
-                None
-            }
-
-            evt => Some(evt),
-        }
+    pub fn resize(&mut self, w: u32, _h: u32) {
+        let offset = (w - LOGICAL_W * self.dxy) as i32 / 2;
+        self.target = if offset > 0 {
+            Some(Rect::new(offset, 0, self.w, self.h))
+        } else {
+            None
+        };
     }
 
     pub fn map_click(&self, x: i32, y: i32) -> Pos {
@@ -130,36 +124,18 @@ impl<'a> Sdl2UI<'a> {
     /// Window resize events are handled internally.
     /// Returns None if no events are pending.
     pub fn poll_event(&mut self) -> Option<Event> {
-        loop {
-            let event = self.evts.poll_event()?;
-            let event = self.handle_resize(event);
-            if event.is_some() {
-                return event;
-            }
-        }
+        self.evts.poll_event()
     }
 
     /// Block and wait for the next event.
     ///
     /// Window resize events are handled internally.
     pub fn wait_event(&mut self) -> Event {
-        loop {
-            let event = self.evts.wait_event();
-            let event = self.handle_resize(event);
-            if let Some(event) = event {
-                return event;
-            }
-        }
+        self.evts.wait_event()
     }
 
     pub fn wait_event_timeout(&mut self, ms: u32) -> Option<Event> {
-        loop {
-            let event = self.evts.wait_event_timeout(ms)?;
-            let event = self.handle_resize(event);
-            if event.is_some() {
-                return event;
-            }
-        }
+        self.evts.wait_event_timeout(ms)
     }
 
     pub fn clear(&mut self) {
@@ -189,7 +165,13 @@ pub struct Box {
 }
 
 impl Box {
-    pub fn new(x: i32, y: i32, w: i32, h: i32, color: Color) -> Self {
-        Self { x, y, w, h, color }
+    pub fn new(x: u32, y: u32, w: u32, h: u32, color: Color) -> Self {
+        Self {
+            x: x as i32,
+            y: y as i32,
+            w: w as i32,
+            h: h as i32,
+            color,
+        }
     }
 }

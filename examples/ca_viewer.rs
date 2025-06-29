@@ -83,7 +83,7 @@ pub fn main() -> anyhow::Result<()> {
     )?;
     watcher.watch(Path::new("data"), RecursiveMode::NonRecursive)?;
 
-    state.tick_with(|state| update_ui(&seeds, &colors, use_voronoi, state))?;
+    state.tick_with_fn(|state| update_ui(&seeds, &colors, use_voronoi, state))?;
 
     while state.running {
         if FILE_CHANGED.swap(false, Ordering::Relaxed) {
@@ -132,7 +132,7 @@ pub fn main() -> anyhow::Result<()> {
             }
         }
 
-        state.tick_with(|state| update_ui(&seeds, &colors, use_voronoi, state))?;
+        state.tick_with_fn(|state| update_ui(&seeds, &colors, use_voronoi, state))?;
     }
 
     Ok(())

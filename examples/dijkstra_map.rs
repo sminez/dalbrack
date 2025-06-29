@@ -36,7 +36,7 @@ pub fn main() -> anyhow::Result<()> {
         .world
         .spawn(Player::new_bundle_without_fov(pos, &state).build());
 
-    state.tick_with(update_ui)?;
+    state.tick_with_fn(update_ui)?;
 
     while state.running {
         if let Some(event) = state.ui.poll_event() {
@@ -71,7 +71,7 @@ pub fn main() -> anyhow::Result<()> {
             }
         }
 
-        state.tick_with(update_ui)?;
+        state.tick_with_fn(update_ui)?;
     }
 
     Ok(())

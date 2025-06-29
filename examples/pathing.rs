@@ -29,7 +29,7 @@ pub fn main() -> anyhow::Result<()> {
         .world
         .spawn(Player::new_base_bundle(pos, FovRange(30), &state).build());
 
-    state.tick()?;
+    state.tick_with_fn(|s| s.update_ui())?;
     let mut t1 = Instant::now();
 
     let mut path_to_cursor = false;
@@ -96,7 +96,7 @@ pub fn main() -> anyhow::Result<()> {
         }
 
         if need_render {
-            state.tick()?;
+            state.tick_with_fn(|s| s.update_ui())?;
         }
     }
 
