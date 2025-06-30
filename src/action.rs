@@ -79,7 +79,6 @@ where
     }
 }
 
-/// Quit the game
 pub fn quit(state: &mut State<'_>) -> anyhow::Result<()> {
     state.running = false;
 

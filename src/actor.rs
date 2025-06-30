@@ -16,6 +16,16 @@ pub struct Actor {
 }
 
 impl Actor {
+    pub fn wait(entity: Entity, state: &State<'_>) -> Option<Action> {
+        state
+            .world
+            .get::<&mut AvailableActions>(entity)
+            .unwrap()
+            .push(Wait);
+
+        None
+    }
+
     pub fn try_move(dx: i32, dy: i32, entity: Entity, state: &State<'_>) -> Option<Action> {
         let pos = *state.world.get::<&Pos>(entity).unwrap() + Pos::new(dx, dy);
         let map = state.mapset.current();
@@ -46,6 +56,19 @@ impl Actor {
             .push(fp);
 
         None
+    }
+}
+
+#[derive(Debug)]
+pub struct Wait;
+
+impl ActionProvider for Wait {
+    fn retain(&self) -> bool {
+        false
+    }
+
+    fn available_actions(&mut self, _entity: Entity, _state: &State<'_>) -> Option<Vec<Action>> {
+        Some(vec![Action::from(move |_state: &mut State<'_>| Ok(()))])
     }
 }
 

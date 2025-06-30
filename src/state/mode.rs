@@ -1,11 +1,12 @@
 //! Modes that the game can be in
 use crate::{
-    action::{Action, AvailableActions, quit, toggle_explored, zoom_in, zoom_out},
+    action::{Action, quit, toggle_explored, zoom_in, zoom_out},
     actor::Actor,
     map::{
         builders::{BuildMap, Forest},
         fov::LightSource,
     },
+    mob::Mob,
     player::Player,
     state::State,
     ui::{MAP_H, MAP_W, palette},
@@ -91,6 +92,8 @@ impl GameMode for LocalMap {
                 Keycode::B => Actor::try_move(-1, 1, state.e_player, state),
                 Keycode::N => Actor::try_move(1, 1, state.e_player, state),
 
+                Keycode::Z => Actor::wait(state.e_player, state),
+
                 Keycode::RightBracket => Some(zoom_in.into()),
                 Keycode::LeftBracket => Some(zoom_out.into()),
 
@@ -105,7 +108,7 @@ impl GameMode for LocalMap {
 
                 Keycode::R => Some(Action::from(move |state: &mut State<'_>| {
                     state.clear_with_comp::<LightSource>()?;
-                    state.clear_with_comp::<AvailableActions>()?;
+                    state.clear_with_comp::<Mob>()?;
 
                     let (pos, map) = Forest::default().new_map(
                         MAP_W as usize,
