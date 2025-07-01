@@ -6,6 +6,7 @@ use crate::{
         Map, MapSet,
         fov::{Fov, FovRange, LightMap, LightSource, Opacity},
     },
+    mob::Mob,
     player::Player,
     rng::RngHandle,
     tileset::{Tile, TileSet},
@@ -381,11 +382,11 @@ impl<'a> State<'a> {
     }
 
     pub fn blit_tiles(&mut self) -> anyhow::Result<()> {
-        let fov_and_light_map = if self.mapset.is_empty() {
+        let fov_lm = if self.mapset.is_empty() {
             None
         } else {
             let fov = self.world.get::<&Fov>(self.e_player).ok();
-            let map = self.mapset.current_mut();
+            let map = self.mapset.current();
             match map.light_map.as_ref() {
                 Some(lm) => fov.map(|fov| (fov, lm)),
                 None => None,
@@ -393,21 +394,33 @@ impl<'a> State<'a> {
         };
 
         let mut r = Rect::new(0, 0, self.ui.dxy, self.ui.dxy);
-        let dxy = self.ui.dxy as i32;
 
-        for (_entity, (pos, tile)) in self.world.query::<(&Pos, &Tile)>().iter() {
-            let mut tile = *tile;
-            if let Some((fov, light_map)) = fov_and_light_map.as_ref() {
-                if !fov.points.contains(pos) {
-                    continue;
-                }
-                tile.color = light_map.apply_light_level(*pos, tile.color);
-            }
+        // Rather than blitting everything in the non-deterministic order we get from iterating the
+        // result of a query we instead group entities based on marker components in order to
+        // enforce a consistent set of layers to the tiles.
+        macro_rules! blit_tile_groups {
+            ($($C:ty),+) => {
+                $(
+                    for (_entity, (pos, tile)) in
+                        self.world.query::<(&Pos, &Tile)>().with::<&$C>().iter()
+                    {
+                        let mut tile = *tile;
+                        if let Some((fov, light_map)) = fov_lm.as_ref() {
+                            if !fov.points.contains(pos) {
+                                continue;
+                            }
+                            tile.color = light_map.apply_light_level(*pos, tile.color);
+                        }
 
-            r.x = pos.x * dxy;
-            r.y = pos.y * dxy;
-            self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
+                        r.x = pos.x * self.ui.dxy as i32;
+                        r.y = pos.y * self.ui.dxy as i32;
+                        self.ts.blit_tile(&tile, r, &mut self.ui.buf)?;
+                    }
+                )+
+            };
         }
+
+        blit_tile_groups!(Mob, Player);
 
         Ok(())
     }
